@@ -1,0 +1,6 @@
+.DS_store
+.env
+*.csv
+*.jpg
+*.zip
+*.csv.gz
