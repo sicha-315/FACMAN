@@ -1,4 +1,4 @@
-# fa02-fin-DDOJAK
+# fa02-fin-FACMAN
 - 삼정 Future Academy 최종 프로젝트 템플릿입니다. 
 ---------------------------------------
 
