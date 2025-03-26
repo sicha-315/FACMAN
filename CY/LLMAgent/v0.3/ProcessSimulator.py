@@ -128,28 +128,31 @@ class ProcessSimulator:
 
     def run_producer(self):
         item_id = 0
-
+        
         while True:
-            self.logging_process("step", "start", True)
-            time.sleep(self.step_time)
-            self.runtime += self.step_time
-            self.update_failure_rate()
+            try:
+                self.logging_process("step", "start", True)
+                time.sleep(self.step_time)
+                self.runtime += self.step_time
+                self.update_failure_rate()
 
-            if self.should_fail():
-                self.is_broken = True
-                self.logging_status("failure", "", False)
-                self.logging_process("step", "interrupt", False)
-                self.repair()
-                continue
+                if self.should_fail():
+                    self.is_broken = True
+                    self.logging_status("failure", "", False)
+                    self.logging_process("step", "interrupt", False)
+                    self.repair()
+                    continue
 
-            self.logging_process("step", "finish", True)
+                self.logging_process("step", "finish", True)
 
-            item = f"item_{item_id}"
-            self.redis_client.rpush("P2_queue", item)
-            item_id += 1
+                item = f"item_{item_id}"
+                self.redis_client.rpush("P2_queue", item)
+                item_id += 1
 
-            if self.check_maintenance():
-                self.maintenance()
+                if self.check_maintenance():
+                    self.maintenance()
+            except Exception as e:
+                print(e)
 
     def run_consumer(self):
         while True:
