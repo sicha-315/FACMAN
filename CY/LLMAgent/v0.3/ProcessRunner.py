@@ -40,6 +40,8 @@ if __name__ == "__main__":
     )
     
     if args.mode == "producer":
+        print(f"Producer started: {args.process_name}")
         sim.run_producer()
     elif args.mode == "consumer":
+        print(f"Consumer started: {args.process_name}")
         sim.run_consumer()
