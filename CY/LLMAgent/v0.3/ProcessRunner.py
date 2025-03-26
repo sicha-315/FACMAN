@@ -31,7 +31,7 @@ if __name__ == "__main__":
         influxdb_org=influxdb_org,
         influxdb_status_bucket=args.status_bucket,
         influxdb_process_bucket=args.process_bucket,
-        redis_host=redis_host
+        redis_host=redis_host,
         redis_port=redis_port,
         redis_password=redis_password,
         sim_speed=args.sim_speed
