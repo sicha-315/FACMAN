@@ -10,10 +10,12 @@ class ProcessSimulator:
         self,
         process_name: str,
         status_url: str = None,
+        process_url: str = None,
         sim_speed: float = 5.0,
     ):
         self.process_name = process_name
         self.status_url = status_url
+        self.process_rul = process_url
         
         self.is_broken = False
         self.runtime = 0.0
@@ -23,8 +25,10 @@ class ProcessSimulator:
         self.maintain_time = max(np.random.normal(15,5), 10) / sim_speed
         self.repair_time = max(np.random.normal(60,10), 45) / sim_speed
         
-    # FastAPI가 아닌 InfluxDB에 로그를 저장하는 코드로 변경
-    def logging(self, event_type, event_status, available):
+    ##################################################
+    ### FastAPI가 아닌 InfluxDB에 로그를 저장하는 코드로 변경
+    ##################################################
+    def logging_status(self, event_type, event_status, available):
         if self.status_url is None:
             return
         message = {"timestamp":str(datetime.datetime.now()),
@@ -39,21 +43,38 @@ class ProcessSimulator:
         except Exception as e:
             print(e)
             return False
+        
+    def logging_process(self, event_type, event_status, available):
+        if self.process_url is None:
+            return
+        message = {"timestamp":str(datetime.datetime.now()),
+                "event_type":event_type,
+                "event_status":event_status,
+                "available":available
+                }
+        try:
+            res = requests.post(self.process_url, json=message, timeout=5)
+            res.raise_for_status()
+            return True
+        except Exception as e:
+            print(e)
+            return False
+        
     
     def should_fail(self):
         return random.random() < self.failure_prob
         
     def repair(self):
-        self.logging("repair","start",False)
+        self.logging_status("repair","start",False)
         time.sleep(self.repair_time)
         self.reset()
-        self.logging("repair","finish",True)
+        self.logging_status("repair","finish",True)
     
     def maintenance(self):
-        self.logging("maintenance","start",False)
+        self.logging_status("maintenance","start",False)
         time.sleep(self.maintain_time)
         self.reset()
-        self.logging("maintenance","finish",True)
+        self.logging_status("maintenance","finish",True)
         
     def reset(self):
         self.runtime = 0.0
@@ -66,25 +87,27 @@ class ProcessSimulator:
     def check_maintenance(self):
         return self.failure_prob > 0.15
     
-    # AWS Redis를 사용하도록 코드 수정
+    ################################
+    ### AWS Redis를 사용하도록 코드 수정
+    ################################
     def run_producer(self):
         redis_client = redis.Redis(host='localhost', port=6379, db=0)
         item_id = 0
         
         while True:
-            self.logging("step","start",True)
+            self.logging_process("step","start",True)
             time.sleep(self.step_time)
             self.runtime += self.step_time
             self.update_failure_rate()
             
             if self.should_fail():
                 self.is_broken = True
-                self.logging("failure","",False)
-                self.logging("step","interrupt",False)
+                self.logging_status("failure","",False)
+                self.logging_process("step","interrupt",False)
                 self.repair()
                 continue
             
-            self.logging("step","finish",True)
+            self.logging_process("step","finish",True)
             
             # 생산된 아이템 Redis 큐에 전송
             item = f"item_{item_id}"
