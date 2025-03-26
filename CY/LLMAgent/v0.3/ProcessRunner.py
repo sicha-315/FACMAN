@@ -9,6 +9,7 @@ def parse_args():
     parser.add_argument("--mode", type=str, choices=["producer", "consumer"], required=True, help="Mode: producer or consumer")
     parser.add_argument("--status_bucket",  type=str, required=True, help="InfluxDB bucket for status logs")
     parser.add_argument("--process_bucket", type=str, required=True, help="InfluxDB bucket for process logs")
+    parser.add_argument("--agent_url", type=str, default=None, help="Agent URL")
     parser.add_argument("--sim_speed", type=float, default=5.0, help="Simulation speed")
     return parser.parse_args()
 
@@ -34,6 +35,7 @@ if __name__ == "__main__":
         redis_host=redis_host,
         redis_port=redis_port,
         redis_password=redis_password,
+        agent_url=args.agent_url,
         sim_speed=args.sim_speed
     )
     
