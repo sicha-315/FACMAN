@@ -67,6 +67,7 @@ class ProcessSimulator:
         )
         try:
             self.write_api.write(bucket=self.status_bucket, record=point)
+            print(f"Logging status: {event_type} {event_status} {available}")
         except Exception as e:
             print(f"InfluxDB status_log error: {e}")
 
@@ -82,6 +83,7 @@ class ProcessSimulator:
         )
         try:
             self.write_api.write(bucket=self.process_bucket, record=point)
+            print(f"Logging process: {event_type} {event_status} {available}")
         except Exception as e:
             print(f"InfluxDB process_log error: {e}")
 
