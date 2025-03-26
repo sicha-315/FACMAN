@@ -113,7 +113,7 @@ class ProcessSimulator:
             return self.failure_prob > 0.15
         payload = {
             "runtime": self.runtime,
-            "failure_rate": self.failure
+            "failure_rate": self.failure_prob
         }
         try:
             res = requests.post(self.agent_url, json=payload, timeout=5)
