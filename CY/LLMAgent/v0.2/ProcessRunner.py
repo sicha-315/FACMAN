@@ -5,6 +5,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--process_name", type=str, required=True, help="Process name")
     parser.add_argument("--status_url", type=str, help="Status URL")
+    parser.add_argument("--process_url", type=str, help="Process URL")
     parser.add_argument("--mode", type=str, choices=["producer", "consumer"], required=True, help="Mode: producer or consumer")
     parser.add_argument("--sim_speed", type=float, default=5.0, help="Simulation speed")
     return parser.parse_args()
@@ -15,6 +16,7 @@ if __name__ == "__main__":
     sim = ProcessSimulator(
         process_name=args.process_name,
         status_url=args.status_url,
+        process_url=args.process_url,
         sim_speed=args.sim_speed
     )
     
