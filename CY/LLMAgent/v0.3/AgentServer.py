@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+import datetime
 
 app = FastAPI()
 
@@ -12,4 +13,5 @@ def IsMaintain(data: IsMaintain):
     result = {
         "need_maintenance": data.failure_rate > 0.15
     }
+    print(f"[{datetime.datetime.now()}] Agent decision:", result["need_maintenance"])
     return {"need_maintenance": result["need_maintenance"]}
