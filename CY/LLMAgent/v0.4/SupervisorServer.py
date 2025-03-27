@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
+from typing import TypedDict
 from langgraph.graph import StateGraph, END
 from influxdb_client import InfluxDBClient
 import datetime
@@ -51,7 +52,10 @@ def supervisor_decision(state):
     need = failure_rate > 0.7
     return {"need_maintenance": need}
 
-graph_builder = StateGraph()
+class SupervisorState(TypedDict):
+    process_id: str
+
+graph_builder = StateGraph(state_schema=SupervisorState)
 graph_builder.add_node("decide", supervisor_decision)
 graph_builder.set_entry_point("decide")
 graph_builder.add_edge("decide", END)
