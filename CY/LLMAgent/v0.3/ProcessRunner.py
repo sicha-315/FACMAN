@@ -10,6 +10,9 @@ def parse_args():
     parser.add_argument("--status_bucket",  type=str, required=True, help="InfluxDB bucket for status logs")
     parser.add_argument("--process_bucket", type=str, required=True, help="InfluxDB bucket for process logs")
     parser.add_argument("--agent_url", type=str, default=None, help="Agent URL")
+    parser.add_argument("--redis_host", type=str, default="localhost", help="Redis host")
+    parser.add_argument("--redis_port", type=int, default=6379, help="Redis port")
+    parser.add_argument("--redis_password", type=str, default=None, help="Redis password")
     parser.add_argument("--sim_speed", type=float, default=5.0, help="Simulation speed")
     return parser.parse_args()
 
@@ -20,10 +23,6 @@ if __name__ == "__main__":
     influxdb_url = os.getenv("INFLUXDB_URL")
     influxdb_token = os.getenv("INFLUXDB_TOKEN")
     influxdb_org = os.getenv("INFLUXDB_ORG")
-
-    redis_host = os.getenv("REDIS_HOST")
-    redis_port = int(os.getenv("REDIS_PORT"))
-    redis_password = os.getenv("REDIS_PASSWORD") or None
     
     sim = ProcessSimulator(
         process_name=args.process_name,
@@ -32,9 +31,9 @@ if __name__ == "__main__":
         influxdb_org=influxdb_org,
         influxdb_status_bucket=args.status_bucket,
         influxdb_process_bucket=args.process_bucket,
-        redis_host=redis_host,
-        redis_port=redis_port,
-        redis_password=redis_password,
+        redis_host=args.redis_host,
+        redis_port=args.redis_port,
+        redis_password=args.redis_password,
         agent_url=args.agent_url,
         sim_speed=args.sim_speed
     )
