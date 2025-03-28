@@ -50,7 +50,10 @@ def supervisor_decision(state):
     failure_rate = fetch_failure_rate(process_id)
     print(f"🔍 {process_id} failure_rate = {failure_rate}")
     need = failure_rate > 0.7
-    return {"need_maintenance": need}
+    return {
+        "process_id": process_id,
+        "need_maintenance": need
+        }
 
 class SupervisorState(TypedDict):
     process_id: str
