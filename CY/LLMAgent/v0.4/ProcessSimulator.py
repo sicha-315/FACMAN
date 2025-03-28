@@ -11,18 +11,21 @@ class ProcessSimulator:
     def __init__(
         self,
         process_name: str,
-        influxdb_url: str,
-        influxdb_token: str,
-        influxdb_org: str,
-        influxdb_status_bucket: str,
-        influxdb_process_bucket: str,
-        redis_host: str,
-        redis_port: int,
+        mode: str,
+        process_prev: str = None,
+        process_next: str = None,
+        influxdb_url: str = None,
+        influxdb_token: str = None,
+        influxdb_org: str = None,
+        redis_host: str = "localhost",
+        redis_port: int = 6379,
         redis_password: str = None,
         agent_url: str = None,
         sim_speed: float = 5.0,
     ):
         self.process_name = process_name
+        self.process_prev = process_prev
+        self.process_next = process_next
         
         # InfluxDB 설정
         self.influxdb_client = InfluxDBClient(
@@ -31,8 +34,8 @@ class ProcessSimulator:
             org=influxdb_org
         )
         self.write_api=self.influxdb_client.write_api(write_options=SYNCHRONOUS)
-        self.status_bucket=influxdb_status_bucket
-        self.process_bucket=influxdb_process_bucket
+        self.status_bucket = f"{self.process_name}_status"
+        self.process_bucket = f"{self.process_name}_process"
 
         # Redis 설정 (AWS Redis 포함)
         self.redis_client = redis.Redis(
@@ -50,10 +53,21 @@ class ProcessSimulator:
         self.is_broken = False
         self.runtime = 0.0
         self.failure_prob = 0.0
+        self.item = []
 
         self.step_time = max(np.random.normal(10, 2), 5) / sim_speed
         self.maintain_time = max(np.random.normal(15, 5), 10) / sim_speed
         self.repair_time = max(np.random.normal(60, 10), 45) / sim_speed
+        
+        self.mode = mode
+        if self.mode == "producer":
+            self.run_loop = self.run_producer
+        elif self.mode == "relay":
+            self.run_loop = self.run_relay
+        elif self.mode == "consumer":
+            self.run_loop = self.run_consumer
+        else:
+            raise ValueError("Invalid mode")
 
     # InfluxDB에 상태 로그 저장
     def logging_status(self, event_type, event_status, available):
@@ -112,63 +126,76 @@ class ProcessSimulator:
 
     def check_maintenance(self):
         if self.agent_url is None:
-            return self.failure_prob > 0.15
+            if self.failure_prob > 0.15:
+                self.maintenance()
         try:
-            res = requests.post(self.agent_url, json={"process_id":self.process_name}, timeout=5)
+            res = requests.post(self.agent_url, json={"process_id": self.process_name}, timeout=5)
             res.raise_for_status()
             result = res.json()
-            return result.get("need_maintenance", False)
+            if result.get("need_maintenance", False):
+                self.maintenance()
         except Exception as e:
             print(e)
+        
+    def process_step(self):
+        self.logging_process("step", "start", True)
+        time.sleep(self.step_time)
+        self.runtime += self.step_time
+        self.update_failure_rate()
+        
+        if self.should_fail():
+            self.is_broken = True
+            self.logging_status("failure", "", False)
+            self.logging_process("step", "interrupt", False)
+            self.repair()
             return False
+        
+        self.logging_process("step", "finish", True)
+        return True
 
     def run_producer(self):
         item_id = 0
-        
         while True:
             try:
-                self.logging_process("step", "start", True)
-                time.sleep(self.step_time)
-                self.runtime += self.step_time
-                self.update_failure_rate()
-
-                if self.should_fail():
-                    self.is_broken = True
-                    self.logging_status("failure", "", False)
-                    self.logging_process("step", "interrupt", False)
-                    self.repair()
+                if not self.process_step():
                     continue
-
-                self.logging_process("step", "finish", True)
-
                 item = f"item_{item_id}"
-                self.redis_client.rpush("P2_queue", item)
+                self.redis_client.rpush(self.process_prev, item)
                 item_id += 1
 
-                if self.check_maintenance():
-                    self.maintenance()
+                self.check_maintenance()
+            except Exception as e:
+                print(e)
+    
+    def run_relay(self):
+        while True:
+            try:
+                item = self._receive_item(self.process_prev)
+                if item is None:
+                    continue
+
+                if not self._process_step():
+                    continue
+
+                self.redis_client.rpush(self.process_next, item)
+
+                self._check_maintenance()
             except Exception as e:
                 print(e)
 
     def run_consumer(self):
         while True:
-            item = self.redis_client.blpop("P2_queue", timeout=0)
-            if not item:
-                continue
-            item = item[1]
-            self.logging_process("step", "start", True)
-            time.sleep(self.step_time)
-            self.runtime += self.step_time
-            self.update_failure_rate()
+            try:
+                item = self._receive_item(self.process_prev)
+                if item is None:
+                    continue
 
-            if self.should_fail():
-                self.is_broken = True
-                self.logging_status("failure", "", False)
-                self.logging_process("step", "interrupt", False)
-                self.repair()
-                continue
+                if not self._process_step():
+                    continue
 
-            self.logging_process("step", "finish", True)
-
-            if self.check_maintenance():
-                self.maintenance()
+                self._check_maintenance()
+            except Exception as e:
+                print(e)
+                
+    def run(self):
+        self.run_loop()
