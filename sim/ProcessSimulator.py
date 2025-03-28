@@ -17,9 +17,7 @@ class ProcessSimulator:
         influxdb_url: str = None,
         influxdb_token: str = None,
         influxdb_org: str = None,
-        redis_host: str = "localhost",
-        redis_port: int = 6379,
-        redis_password: str = None,
+        redis_url: str = "localhost",
         agent_url: str = None,
         sim_speed: float = 5.0,
     ):
@@ -27,7 +25,6 @@ class ProcessSimulator:
         self.process_prev = process_prev
         self.process_next = process_next
         
-        # InfluxDB 설정
         self.influxdb_client = InfluxDBClient(
             url=influxdb_url,
             token=influxdb_token,
@@ -37,19 +34,13 @@ class ProcessSimulator:
         self.status_bucket = f"{self.process_name}_status"
         self.process_bucket = f"{self.process_name}_process"
 
-        # Redis 설정 (AWS Redis 포함)
-        self.redis_client = redis.Redis(
-            host=redis_host,
-            port=redis_port,
-            password=redis_password,
-            db=0,
+        self.redis_client = redis.from_url(
+            redis_url,
             decode_responses=True
         )
         
-        # Agent 설정
         self.agent_url = agent_url
 
-        # 공정 상태
         self.is_broken = False
         self.runtime = 0.0
         self.failure_prob = 0.0
