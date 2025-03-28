@@ -20,9 +20,7 @@ if __name__ == "__main__":
     influxdb_url = os.getenv("INFLUXDB_URL")
     influxdb_token = os.getenv("INFLUXDB_TOKEN")
     influxdb_org = os.getenv("INFLUXDB_ORG")
-    redis_host = os.getenv("REDIS_HOST")
-    redis_port = int(os.getenv("REDIS_PORT"))
-    redis_password = os.getenv("REDIS_PASSWORD")
+    redis_url = os.getenv("REDIS_URL")
     
     sim = ProcessSimulator(
         process_name=args.process_name,
@@ -32,16 +30,9 @@ if __name__ == "__main__":
         influxdb_url=influxdb_url,
         influxdb_token=influxdb_token,
         influxdb_org=influxdb_org,
-        redis_host=redis_host,
-        redis_port=redis_port,
-        redis_password=redis_password,
+        redis_url=redis_url,
         agent_url=args.agent_url,
         sim_speed=args.sim_speed
     )
     
-    if args.mode == "producer":
-        print(f"Producer started: {args.process_name}")
-        sim.run_producer()
-    elif args.mode == "consumer":
-        print(f"Consumer started: {args.process_name}")
-        sim.run_consumer()
+    sim.run()
