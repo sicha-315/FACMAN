@@ -32,9 +32,9 @@ if __name__ == "__main__":
         influxdb_url=influxdb_url,
         influxdb_token=influxdb_token,
         influxdb_org=influxdb_org,
-        redis_host=args.redis_host,
-        redis_port=args.redis_port,
-        redis_password=args.redis_password,
+        redis_host=redis_host,
+        redis_port=redis_port,
+        redis_password=redis_password,
         agent_url=args.agent_url,
         sim_speed=args.sim_speed
     )
