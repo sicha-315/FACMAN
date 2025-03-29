@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>실시간 제조 모니터링 시스템</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="logo-box">
+      <img src="images/facman.png" alt="FACMAN Logo" class="logo-img" />
+    </div>
+    <h2>📊 대시보드</h2>
+    <a href="#">🏠 메인 페이지</a>
+    <a href="server_A1.html">🖥️ 서버 A-1</a>
+    <a href="server_A2.html">🖥️ 서버 A-2</a>
+    <a href="server_B1.html">🖥️ 서버 B-1</a>
+    <a href="server_B2.html">🖥️ 서버 B-2</a>
+  </nav>
+
+  <div class="layout-column">
+    <header>
+      <div><strong>실시간 제조 모니터링 시스템</strong></div>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>👤</span>
+          <span><strong>홍길동(대리)</strong></span>
+        </div>
+        <div class="clock" id="clock">--:--:--</div>
+        <div>🔔 알림 3건</div>
+      </div>
+    </header>
+
+    <div class="main-wrapper">
+      <div class="main">
+        <!-- P1/P2 가동률 -->
+        <div class="section">
+          <h2>P1/P2 가동률</h2>
+          <div class="charts">
+            <div class="chart-box">
+              <iframe 
+                src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&from=1743049200000&to=1743051360000&timezone=browser&refresh=5s&panelId=6"
+                width="100%" height="300" frameborder="0">
+              </iframe>
+            </div>
+            <div class="chart-box">
+              <iframe 
+                src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&from=1743049200000&to=1743051360000&timezone=browser&refresh=5s&panelId=7"
+                width="100%" height="300" frameborder="0">
+              </iframe>
+            </div>
+          </div>
+        </div>
+
+        <!-- 설비 가동 현황 요약 -->
+        <div class="section">
+          <h2>설비 가동 현황 요약</h2>
+          <div class="charts">
+            <div class="chart-box">
+              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=2" width="100%" height="300" frameborder="0"></iframe>
+            </div>
+            <div class="chart-box">
+              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=1" width="100%" height="300" frameborder="0"></iframe>
+            </div>
+            <div class="chart-box">
+              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=3" width="100%" height="300" frameborder="0"></iframe>
+            </div>
+            <div class="chart-box">
+              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=4" width="100%" height="300" frameborder="0"></iframe>
+            </div>
+          </div>
+        </div>
+
+        <!-- 제품 공정 위치 추적 -->
+        <div class="section">
+          <h2>제품 공정 위치 추적</h2>
+          <div class="search-bar">
+            <input type="text" placeholder="제품 ID 입력 예: PROD123" style="flex:1; padding: 8px;" />
+            <button>조회</button>
+          </div>
+          <p>🔍 제품 PROD123은 <strong>프레스 공정</strong> - <strong>서버 B-1</strong>에서 가공 중입니다.</p>
+        </div>
+      </div>
+
+      <!-- 오른쪽 챗봇 & 로그 -->
+      <aside class="right-sidebar">
+        <div class="section chatbot">
+          <h2>💬 챗봇</h2>
+          <textarea placeholder="예: A-2 서버 상태 알려줘"></textarea>
+          <button>질문하기</button>
+          <div class="chat-response">
+            📡 A-2 서버는 현재 점검 상태입니다. 최근 온도 센서 오류 발생 (08:20).
+          </div>
+        </div>
+
+        <div class="section">
+          <h2>🧠 에이전트 판단 로그</h2>
+          <button onclick="toggleLog()">📜 로그 이력 보기</button>
+          <div class="log-area" id="logArea">
+            <div class="log-entry">[09:12] 서버 A-2: 점검 필요 → 서버 A-1로 제품 이관</div>
+            <div class="log-entry">[09:08] 서버 B-1: 이상 진동 감지</div>
+            <div class="log-entry">[08:55] 서버 A-1: 온도 정상화</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent =
+        now.toLocaleString('ko-KR', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toggleLog() {
+      const logArea = document.getElementById("logArea");
+      logArea.style.display = logArea.style.display === "none" ? "block" : "none";
+    }
+  </script>
+</body>
+</html>
