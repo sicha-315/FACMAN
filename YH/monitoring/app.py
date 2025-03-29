@@ -1,10 +1,13 @@
 from flask import Flask, request, jsonify, render_template, send_file
+from flask_socketio import SocketIO, emit
 from influxdb_client import InfluxDBClient
 from docx import Document
 from docx.shared import Inches
 from io import BytesIO
-from openai import OpenAI  # ✅ 올바른 방식
+from openai import OpenAI
 import base64
+from threading import Thread
+from time import sleep
 import os
 from dotenv import load_dotenv
 
@@ -13,6 +16,7 @@ load_dotenv()
 
 # ✅ Flask 앱 초기화
 app = Flask(__name__)
+socketio = SocketIO(app)  # ✅ SocketIO 활성화
 
 # ✅ .env에서 민감 정보 불러오기
 openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
@@ -26,6 +30,54 @@ influx_client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_OR
 @app.route("/")
 def index():
     return render_template("index.html")
+
+# ✅ 공정 상태를 주기적으로 감지하고 WebSocket으로 전송
+def emit_status_loop():
+    while True:
+        try:
+            statuses = {}
+
+            for process in ["P1", "P2"]:
+                try:
+                    query = f'''
+                    from(bucket: "{process}_status")
+                      |> range(start: -5m)
+                      |> filter(fn: (r) => r._measurement == "status_log" and r._field == "available")
+                      |> last()
+                    '''
+
+                    print(f"🔍 {process} 쿼리 실행 중...")
+
+                    tables = influx_client.query_api().query(query)
+                    found = False
+
+                    for table in tables:
+                        for record in table.records:
+                            value = record.get_value()
+                            print(f"✅ {process} 상태값:", value)
+                            statuses[process] = int(value)
+                            found = True
+
+                    if not found:
+                        print(f"⚠️ {process}: 최근 5분 내 'available' 데이터 없음")
+
+                except Exception as e:
+                    print(f"❌ {process} 쿼리 오류:", e)
+
+            print("📤 emit할 상태:", statuses)
+            socketio.emit('status_update', statuses)
+
+        except Exception as e:
+            print("🔥 상태 송신 오류:", e)
+
+        sleep(5)
+
+
+# ✅ 백그라운드 스레드 실행
+@socketio.on('connect')
+def handle_connect():
+    print("📡 클라이언트 WebSocket 연결됨")
+
 
 # ✅ 보고서 페이지
 @app.route("/report")
@@ -139,25 +191,110 @@ def generate_docx():
         print(f"📛 DOCX 생성 오류: {e}")
         return jsonify({"error": "파일 생성 실패"}), 500
 
-# ✅ 챗봇 응답 처리 API
+
 @app.route("/chat", methods=["POST"])
 def chat():
     user_message = request.json.get("message", "")
 
-    messages = [
-        {"role": "system", "content": "너는 제조 상태와 데이터를 알려주는 AI Agent야."},
-        {"role": "user", "content": user_message}
-    ]
+    # ✅ 1단계: intent 분류 프롬프트
+    intent_prompt = f"""
+너는 AI 에이전트야. 사용자의 질문을 보고, 아래 중 하나로 분류해줘.
+- influx: 제조 공정이나 설비 상태, 고장 등 InfluxDB에서 데이터를 가져와야 하는 질문
+- web: 외부 뉴스, 시세, 일반 정보 등 웹 검색이 필요한 질문
+- gpt: 일반적인 지식이나 개념 설명, 잡담 등
+
+질문: "{user_message}"
+위 질문은 어떤 유형이야? 반드시 influx / web / gpt 중 하나만 말해줘.
+"""
 
     try:
-        response = openai_client.chat.completions.create(
+        intent_res = openai_client.chat.completions.create(
             model="gpt-3.5-turbo",
-            messages=messages
+            messages=[
+                {"role": "system", "content": "너는 사용자의 질문 intent를 분석하는 판단 에이전트야."},
+                {"role": "user", "content": intent_prompt}
+            ]
         )
-        return jsonify({"reply": response.choices[0].message.content})
+        intent_raw = intent_res.choices[0].message.content.strip().lower()
+        intent = intent_raw if intent_raw in ["influx", "web", "gpt"] else "gpt"
+
+        # ✅ 2단계: intent에 따라 처리
+        if intent == "influx":
+            reply = handle_influx_query(user_message)
+        elif intent == "web":
+            reply = "🔍 웹 검색 기능은 현재 준비 중입니다."
+        else:
+            reply = handle_gpt_query(user_message)
+
+        return jsonify({"reply": reply})
     except Exception as e:
         return jsonify({"reply": f"⚠️ 오류 발생: {str(e)}"}), 500
 
+
+# ✅ GPT 처리 함수
+def handle_gpt_query(user_message):
+    gpt_reply = openai_client.chat.completions.create(
+        model="gpt-3.5-turbo",
+        messages=[
+            {"role": "system", "content": "너는 친절한 제조 공정 AI 비서야."},
+            {"role": "user", "content": user_message}
+        ]
+    )
+    return gpt_reply.choices[0].message.content.strip()
+
+
+# ✅ Influx 처리 함수 (GPT 기반 쿼리 생성 + 실행)
+def handle_influx_query(user_message):
+    # Step 1: 사용자 질문을 Flux 쿼리로 변환 (버킷명 고정 안내 포함)
+    query_prompt = f"""
+너는 InfluxDB 전문가야. 다음과 같이 정확하게 Flux 쿼리를 생성해줘.
+
+⚠️ 주의사항:
+- 버킷 이름은 반드시 아래 중 하나로 고정해야 해:
+  - "P1_status"
+  - "P2_status"
+- "your_bucket" 같은 표현은 절대 사용하면 안 돼.
+- 쿼리는 실행 가능한 형태여야 하고, 결과에 _value 또는 available, event_type 필드가 있어야 해.
+
+사용자 질문: "{user_message}"
+Flux 쿼리만 반환해줘. 설명은 필요 없어.
+"""
+
+    try:
+        gpt_query_res = openai_client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "너는 InfluxDB 쿼리 생성 전문가야."},
+                {"role": "user", "content": query_prompt}
+            ]
+        )
+        flux_query = gpt_query_res.choices[0].message.content.strip()
+        print("✅ 생성된 쿼리:\n", flux_query)
+
+        # Step 2: InfluxDB 쿼리 실행
+        result_tables = influx_client.query_api().query(flux_query)
+
+        # Step 3: 결과 파싱
+        result_rows = []
+        for table in result_tables:
+            for record in table.records:
+                values = record.values
+                time_str = str(values.get("_time", "(시간 없음)"))
+                field_str = str(values.get("_field", "(필드 없음)"))
+                value_str = str(values.get("_value", values.get("value", "(값 없음)")))
+
+                result_rows.append(f"{time_str} - {field_str} = {value_str}")
+
+        if not result_rows:
+            return "📭 InfluxDB에서 결과를 찾을 수 없습니다."
+
+        return "📊 InfluxDB 응답 결과:\n" + "\n".join(result_rows[:10])
+
+    except Exception as e:
+        return f"⚠️ 쿼리 처리 중 오류 발생: {str(e)}"
+
+
 # ✅ 앱 실행
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    Thread(target=emit_status_loop, daemon=True).start()  # ✅ 상태 감지 스레드 시작
+    socketio.run(app, debug=True, host="0.0.0.0", port=5000)
