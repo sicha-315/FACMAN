@@ -40,59 +40,33 @@ def get_recent_status(bucket):
 
 
 def emit_status():
-    prev_event_p1 = None
-    prev_event_p2 = None
-
+    prev_event = None
     while True:
-        # P1
-        events_p1 = get_recent_status("P1_status")
-        if events_p1:
-            latest_p1 = events_p1[0]
-            print(f"[Influx] P1 상태: {latest_p1}")
-            if latest_p1 != prev_event_p1:
-                print(f"[Influx] P1 상태 변경: {latest_p1}")
+        events = get_recent_status("P1_status")
+        if events:
+            latest = events[0]
+            print(f"[Influx] 현재 상태: {latest}")  # 항상 출력
+            if latest != prev_event:
+                print(f"[Influx] 상태 변경: {latest}")
                 socketio.emit('status_update', {
-                    'P1-A': {'event_type': latest_p1}
+                    'P1-A': {'event_type': latest}
                 })
-                prev_event_p1 = latest_p1
-
-        # P2
-        events_p2 = get_recent_status("P2_status")
-        if events_p2:
-            latest_p2 = events_p2[0]
-            print(f"[Influx] P2 상태: {latest_p2}")
-            if latest_p2 != prev_event_p2:
-                print(f"[Influx] P2 상태 변경: {latest_p2}")
-                socketio.emit('status_update', {
-                    'P2-A': {'event_type': latest_p2}
-                })
-                prev_event_p2 = latest_p2
-
+                prev_event = latest
         socketio.sleep(1)
-
 
 @app.route("/")
 def index():
     return render_template("index.html")
 
-
+@socketio.on('connect')
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
-
-    # 접속 시 초기 상태 전달
-    events_p1 = get_recent_status("P1_status")
-    if events_p1:
-        latest_p1 = events_p1[0]
+    events = get_recent_status("P1_status")
+    if events:
+        latest = events[0]
         socketio.emit('status_update', {
-            'P1-A': {'event_type': latest_p1}
-        })
-
-    events_p2 = get_recent_status("P2_status")
-    if events_p2:
-        latest_p2 = events_p2[0]
-        socketio.emit('status_update', {
-            'P2-A': {'event_type': latest_p2}
+            'P1-A': {'event_type': latest}
         })
 
 
