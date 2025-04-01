@@ -2,8 +2,24 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>실시간 제조 모니터링 시스템</title>
+  <title>제조 모니터링 시스템</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <style>
+    .section-row-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+      align-items: start;
+    }
+    .charts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+    .chart-box {
+      flex: 1 1 300px;
+    }
+  </style>
 </head>
 <body>
   <nav class="sidebar">
@@ -34,46 +50,40 @@
 
     <div class="main-wrapper">
       <div class="main">
-        <!-- 실시간 설비별 가동 현황 -->
-        <div class="section">
-          <h2>설비별 가동 현황</h2>
-          <div class="charts">
-            <div class="chart-box status-boxes">
-              <div class="machine-box" id="P1-box">P1</div>
-              <div class="machine-box" id="P2-box">P2</div>
+        <!-- ✅ 상단: 설비 상태 + 유용성 -->
+        <div class="section-row-grid">
+          <div class="section section-status">
+            <h2>설비 상태</h2>
+            <div class="status-grid-2x2">
+              <div id="P1-A" class="status-box">P1-A<br><span class="status-value">--</span></div>
+              <div id="P2-A" class="status-box">P2-A<br><span class="status-value">--</span></div>
+              <div id="P1-B" class="status-box disabled">P1-B<br><span class="status-value">N/A</span></div>
+              <div id="P2-B" class="status-box disabled">P2-B<br><span class="status-value">N/A</span></div>
             </div>
+          </div>
 
-            <div class="chart-box three-panel-box">
-              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=8&from=now-1h&to=now&refresh=5s" frameborder="0" width="100%" height="300"></iframe>
-              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=6&from=now-1h&to=now&refresh=5s" frameborder="0" width="100%" height="300"></iframe>
-              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=7&from=now-1h&to=now&refresh=5s" frameborder="0" width="100%" height="300"></iframe>
+          <div class="section section-charts">
+            <h2>유용성 및 가동률</h2>
+            <div class="gauge-grid">
+              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=8" frameborder="0"></iframe>
+              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=6" frameborder="0"></iframe>
+              <iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=7" frameborder="0"></iframe>
             </div>
           </div>
         </div>
 
-        <!-- 설비 가동 현황 요약 -->
+        <!-- ✅ 하단: 설비 가동 요약 -->
         <div class="section">
           <h2>설비 가동 현황 요약</h2>
           <div class="charts">
             <div class="chart-box"><iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=2" width="100%" height="300" frameborder="0"></iframe></div>
-            <div class="chart-box"><iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=9&refresh=5s" width="100%" height="300" frameborder="0"></iframe></div>
+            <div class="chart-box"><iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=9" width="100%" height="300" frameborder="0"></iframe></div>
             <div class="chart-box"><iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=3" width="100%" height="300" frameborder="0"></iframe></div>
-            <div class="chart-box"><iframe src="http://43.206.137.205:3000/d-solo/beh284rhldk3ka/test?orgId=1&panelId=4" width="100%" height="300" frameborder="0"></iframe></div>
           </div>
-        </div>
-
-        <!-- 제품 공정 위치 추적 -->
-        <div class="section">
-          <h2>제품 공정 위치 추적</h2>
-          <div class="search-bar">
-            <input type="text" placeholder="제품 ID 입력 예: PROD123" style="flex:1; padding: 8px;" />
-            <button>조회</button>
-          </div>
-          <p>🔍 제품 PROD123은 <strong>프레스 공정</strong> - <strong>서버 B-1</strong>에서 가공 중입니다.</p>
         </div>
       </div>
 
-      <!-- 오른쪽 챗봇 & 로그 -->
+      <!-- ✅ 사이드바: 챗봇 + 로그 -->
       <aside class="right-sidebar">
         <div class="section chatbot">
           <h2>💬 챗봇</h2>
@@ -81,7 +91,6 @@
           <button>질문하기</button>
           <div class="chat-response">🤖 챗봇 응답이 여기에 표시됩니다.</div>
         </div>
-
         <div class="section">
           <h2>🧠 에이전트 판단 로그</h2>
           <button onclick="toggleLog()">📜 로그 이력 보기</button>
@@ -95,7 +104,7 @@
     </div>
   </div>
 
-  <!-- 기본 동작 스크립트 -->
+  <!-- 시계 및 WebSocket -->
   <script>
     function updateClock() {
       const now = new Date();
@@ -114,15 +123,13 @@
       const textarea = document.querySelector('.chatbot textarea');
       const responseBox = document.querySelector('.chat-response');
       const message = textarea.value.trim();
-
       if (!message) return;
       responseBox.textContent = "⏳ 답변 생성 중입니다...";
-
       try {
         const res = await fetch("/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: message })
+          body: JSON.stringify({ message })
         });
         const data = await res.json();
         responseBox.textContent = data.reply;
@@ -135,26 +142,21 @@
 
   <script src="{{ url_for('static', filename='chatbot.js') }}"></script>
   <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-
-  <!-- ✅ 실시간 WebSocket 상태 수신 -->
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const socket = io();
-
-      socket.on('status_update', data => {
-        console.log("📡 상태 수신:", data);
-        for (const [proc, status] of Object.entries(data)) {
-          const el = document.getElementById(proc + "-box");
-          if (el) {
-            el.style.backgroundColor =
-              status === 1 ? "limegreen" :
-              status === 0 ? "crimson" : "gray";
-            el.textContent = `${proc} (${status === 1 ? "가동" : "비가동"})`;
-          }
-        }
-      });
+    const socket = io();
+    socket.on('status_update', (data) => {
+      for (const [key, val] of Object.entries(data)) {
+        const el = document.getElementById(key);
+        if (!el) continue;
+        const type = val.event_type || "unknown";
+        el.querySelector(".status-value").textContent = type;
+        el.style.backgroundColor =
+          type === "processing" ? "#4CAF50" :
+          type === "repair" ? "orange" :
+          type === "maintenance" ? "gold" :
+          type === "failure" ? "crimson" : "#444";
+      }
     });
   </script>
-
 </body>
 </html>
