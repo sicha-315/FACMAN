@@ -7,6 +7,22 @@ import numpy as np
 from influxdb_client import InfluxDBClient, Point
 from influxdb_client.client.write_api import SYNCHRONOUS
 
+class ItemIDGenerator:
+    def __init__(self):
+        self.last_minute = None
+        self.counter = 0
+
+    def generate(self):
+        current_minute = datetime.datetime.now().strftime("%y%m%d%H%M")  # 년도를 두 자리로 표시
+
+        if current_minute != self.last_minute:
+            self.last_minute = current_minute
+            self.counter = 0
+        
+        item_id = f"{current_minute}{self.counter}"
+        self.counter += 1
+        return item_id
+
 class ProcessSimulator:
     def __init__(
         self,
@@ -42,13 +58,11 @@ class ProcessSimulator:
         self._is_broken = False
         self._runtime = 0.0
         self._failure_prob = 0.0
-        self._item = []
-
-        self._step_time = max(np.random.normal(10, 2), 5) / sim_speed
-        self._maintain_time = max(np.random.normal(15, 5), 10) / sim_speed
-        self._repair_time = max(np.random.normal(60, 10), 45) / sim_speed
         
+        self.sim_speed = sim_speed        
         self._mode = mode
+        self._item_id_generator = ItemIDGenerator()
+        
         if self._mode == "producer":
             self._run_loop = self._run_producer
         elif self._mode == "relay":
@@ -57,6 +71,16 @@ class ProcessSimulator:
             self._run_loop = self._run_consumer
         else:
             raise ValueError("Invalid mode")
+        
+    @property
+    def _step_time(self):
+        return max(np.random.normal(10, 2), 5) / self.sim_speed
+    @property
+    def _maintain_time(self):
+        return max(np.random.normal(15, 5), 10) / self.sim_speed
+    @property
+    def _repair_time(self):
+        return max(np.random.normal(60, 10), 45) / self.sim_speed
 
     def _logging_status(self, event_type, event_status, available):
         point = (
@@ -73,18 +97,18 @@ class ProcessSimulator:
         except Exception as e:
             print(f"InfluxDB status_log error: {e}")
 
-    def _logging_process(self, event_type, event_status, available):
+    def _logging_process(self, product_id, process_id, line_id, status):
         point = (
             Point("process_log")
-            .tag("process", self._process_name)
-            .field("event_type", event_type)
-            .field("event_status", event_status)
-            .field("available", int(available))
+            .tag("product_id", product_id)
+            .tag("process_id", process_id)
+            .tag("line_id", line_id)
+            .field("status", status)
             .time(datetime.datetime.now())
         )
         try:
             self._write_api.write(bucket=self._process_bucket, record=point)
-            print(f"Logging process: {event_type} {event_status} {available}")
+            print(f"Logging process:{self._process_bucket} {product_id} {process_id} {line_id} {status}")
         except Exception as e:
             print(f"InfluxDB process_log error: {e}")
 
@@ -96,12 +120,14 @@ class ProcessSimulator:
         time.sleep(self._repair_time)
         self._reset()
         self._logging_status("repair", "finish", True)
+        self._logging_status("processing", "", True)
 
     def _maintenance(self):
         self._logging_status("maintenance", "start", False)
         time.sleep(self._maintain_time)
         self._reset()
         self._logging_status("maintenance", "finish", True)
+        self._logging_status("processing", "", True)
 
     def _reset(self):
         self._runtime = 0.0
@@ -131,29 +157,32 @@ class ProcessSimulator:
             return None
         return item[1]
 
-    def _process_step(self):
-        self._logging_process("step", "start", True)
+    def _process_step(self, item):
+        self._logging_process(item, self._process_name[:-2], self._process_name, "start")
         time.sleep(self._step_time)
         self._runtime += self._step_time
         self._update_failure_rate()
         if self._should_fail():
             self._is_broken = True
             self._logging_status("failure", "", False)
-            self._logging_process("step", "interrupt", False)
+            self._logging_process(item, self._process_name[:-2], self._process_name, "interrupt")
+            time.sleep(5)
             self._repair()
             return False
-        self._logging_process("step", "finish", True)
+        self._logging_process(item, self._process_name[:-2], self._process_name, "finish")
         return True
 
     def _run_producer(self):
         item_id = 0
         while True:
             try:
-                item = f"item_{item_id}"
+                item = self._item_id_generator.generate() + self._process_next[-1]
                 self._redis_client.rpush(self._process_next, item)
+                self._logging_process(item, self._process_name, "", "input")
+                print(f"Produced: {item}")
                 item_id += 1
                 time.sleep(self._step_time)
-                #self._logging_process("produce", "finish", True)
+                self._logging_process(item, self._process_next[:-2], self._process_next[1:], "arrival")
             except Exception as e:
                 print(e)
 
@@ -163,9 +192,10 @@ class ProcessSimulator:
                 item = self._receive_item(self._process_name)
                 if item is None:
                     continue
-                if not self._process_step():
+                if not self._process_step(item):
                     continue
                 self._redis_client.rpush(self._process_next, item)
+                self._logging_process(item, self._process_next[:-2], self._process_next[1:], "arrival")
                 self._check_maintenance()
             except Exception as e:
                 print(e)
@@ -176,11 +206,10 @@ class ProcessSimulator:
                 item = self._receive_item(self._process_name)
                 if item is None:
                     continue
-                if not self._process_step():
-                    continue
-                self._check_maintenance()
+                self._logging_process(item, self._process_name, "", "arrival")
             except Exception as e:
                 print(e)
 
     def run(self):
+        print(f"Running {self._process_name} in {self._mode} mode")
         self._run_loop()
