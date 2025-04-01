@@ -8,7 +8,7 @@ body {
   overflow: hidden;
   display: flex;
   height: 100vh;
-  background-color: #f4f4f4;  /* ✅ 추가 */
+  background-color: #f4f4f4;
 }
 
 .sidebar {
@@ -74,7 +74,7 @@ header {
   display: flex;
   flex: 1;
   overflow: hidden;
-  padding: 20px;  /* ✅ 추가 */
+  padding: 20px;
 }
 
 .main {
@@ -112,7 +112,7 @@ header {
   border: 1px solid #ccc;
 }
 
-/* ✅ P2 가동률 3분할 박스 */
+/* P2 가동률 3분할 박스 */
 .three-panel-box {
   display: flex;
   gap: 12px;
@@ -167,7 +167,7 @@ header {
   margin-top: 15px;
 }
 
-/* ✅ 기존 P1/P2 박스 스타일 */
+/* 기존 P1/P2 박스 스타일 */
 .status-boxes {
   display: flex;
   gap: 20px;
@@ -194,14 +194,13 @@ header {
   transform: scale(1.05);
 }
 
-/* ✅ 새로운 실시간 상태 박스 레이아웃 (그리드 기반) */
-.status-grid {
+/* 새로운 실시간 상태 박스 레이아웃 (그리드 기반) */
+.status-grid-2x2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
 
-/* ✅ 실시간 박스 스타일 */
 .status-box {
   background-color: #444;
   color: white;
@@ -217,7 +216,8 @@ header {
   font-weight: bold;
 }
 
+/* 비활성화 상태 삭제 또는 최소화 */
 .status-box.disabled {
-  opacity: 0.6;
-  background-color: #888;
+  opacity: 1;
+  background-color: #444;
 }

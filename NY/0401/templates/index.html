@@ -158,5 +158,25 @@
       }
     });
   </script>
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <script>
+    const socket = io('http://192.168.0.85:5000', {
+      transports: ['websocket'],
+    });
+  
+    socket.on('status_update', (data) => {
+      for (const [key, val] of Object.entries(data)) {
+        const el = document.getElementById(key);
+        if (!el) continue;
+        const type = val.event_type || "unknown";
+        el.querySelector(".status-value").textContent = type;
+        el.style.backgroundColor =
+          type === "processing" ? "#4CAF50" :
+          type === "repair" ? "orange" :
+          type === "maintenance" ? "gold" :
+          type === "failure" ? "crimson" : "#444";
+      }
+    });
+  </script>
 </body>
 </html>

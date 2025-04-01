@@ -41,33 +41,52 @@ def get_recent_status(bucket):
 
 # ✅ WebSocket으로 상태 실시간 전송
 def emit_status():
-    prev_event_p1 = None
-    prev_event_p2 = None
+    print("[DEBUG] emit_status() 실행 시작")
+    prev_event_p1a = None
+    prev_event_p1b = None
+    prev_event_p2a = None
+    prev_event_p2b = None
 
     while True:
-        # P1 상태 확인
-        events_p1 = get_recent_status("P1_status")
-        if events_p1:
-            latest_p1 = events_p1[0]
-            print(f"[Influx] P1 상태: {latest_p1}")
-            if latest_p1 != prev_event_p1:
-                print(f"[Influx] P1 상태 변경: {latest_p1}")
+        # P1-A
+        events_p1a = get_recent_status("P1-A_status")
+        if events_p1a:
+            latest_p1a = events_p1a[0]
+            if latest_p1a != prev_event_p1a:
                 socketio.emit('status_update', {
-                    'P1-A': {'event_type': latest_p1}
+                    'P1-A': {'event_type': latest_p1a}
                 })
-                prev_event_p1 = latest_p1
+                prev_event_p1a = latest_p1a
 
-        # P2 상태 확인
-        events_p2 = get_recent_status("P2_status")
-        if events_p2:
-            latest_p2 = events_p2[0]
-            print(f"[Influx] P2 상태: {latest_p2}")
-            if latest_p2 != prev_event_p2:
-                print(f"[Influx] P2 상태 변경: {latest_p2}")
+        # P1-B
+        events_p1b = get_recent_status("P1-B_status")
+        if events_p1b:
+            latest_p1b = events_p1b[0]
+            if latest_p1b != prev_event_p1b:
                 socketio.emit('status_update', {
-                    'P2-A': {'event_type': latest_p2}
+                    'P1-B': {'event_type': latest_p1b}
                 })
-                prev_event_p2 = latest_p2
+                prev_event_p1b = latest_p1b
+
+        # P2-A
+        events_p2a = get_recent_status("P2-A_status")
+        if events_p2a:
+            latest_p2a = events_p2a[0]
+            if latest_p2a != prev_event_p2a:
+                socketio.emit('status_update', {
+                    'P2-A': {'event_type': latest_p2a}
+                })
+                prev_event_p2a = latest_p2a
+
+        # P2-B
+        events_p2b = get_recent_status("P2-B_status")
+        if events_p2b:
+            latest_p2b = events_p2b[0]
+            if latest_p2b != prev_event_p2b:
+                socketio.emit('status_update', {
+                    'P2-B': {'event_type': latest_p2b}
+                })
+                prev_event_p2b = latest_p2b
 
         socketio.sleep(1)
 

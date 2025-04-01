@@ -1,14 +1,10 @@
-* {
-  box-sizing: border-box;
-}
-
+* { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: 'Segoe UI', 'Arial', sans-serif;
+  font-family: Arial, sans-serif;
   overflow: hidden;
   display: flex;
   height: 100vh;
-  background-color: #f4f4f4;  /* ✅ 추가 */
 }
 
 .sidebar {
@@ -66,15 +62,12 @@ header {
   align-items: center;
 }
 
-.clock {
-  font-size: 14px;
-}
+.clock { font-size: 14px; }
 
 .main-wrapper {
   display: flex;
   flex: 1;
   overflow: hidden;
-  padding: 20px;  /* ✅ 추가 */
 }
 
 .main {
@@ -89,7 +82,7 @@ header {
   background: white;
   padding: 20px;
   border-radius: 8px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
 .section h2 {
@@ -109,21 +102,6 @@ header {
   min-width: 300px;
   height: 300px;
   background: #f8f9fa;
-  border: 1px solid #ccc;
-}
-
-/* ✅ P2 가동률 3분할 박스 */
-.three-panel-box {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.three-panel-box iframe {
-  flex: 1;
-  min-width: 0;
-  height: 300px;
-  border-radius: 6px;
   border: 1px solid #ccc;
 }
 
@@ -165,59 +143,4 @@ header {
 .log-area {
   display: none;
   margin-top: 15px;
-}
-
-/* ✅ 기존 P1/P2 박스 스타일 */
-.status-boxes {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.machine-box {
-  width: 140px;
-  height: 100px;
-  border-radius: 10px;
-  background-color: gray;
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
-  line-height: 100px;
-  text-align: center;
-  transition: background-color 0.3s ease, transform 0.3s ease;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.machine-box:hover {
-  transform: scale(1.05);
-}
-
-/* ✅ 새로운 실시간 상태 박스 레이아웃 (그리드 기반) */
-.status-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
-}
-
-/* ✅ 실시간 박스 스타일 */
-.status-box {
-  background-color: #444;
-  color: white;
-  font-size: 24px;
-  text-align: center;
-  padding: 40px;
-  border-radius: 12px;
-  transition: background-color 0.5s;
-}
-
-.status-value {
-  font-size: 32px;
-  font-weight: bold;
-}
-
-.status-box.disabled {
-  opacity: 0.6;
-  background-color: #888;
 }

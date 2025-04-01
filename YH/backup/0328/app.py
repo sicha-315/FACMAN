@@ -1,100 +1,31 @@
-import eventlet
-eventlet.monkey_patch()
-
-import os
-from flask import Flask, render_template
-from flask_socketio import SocketIO
+from flask import Flask, request, jsonify, render_template, send_file
 from influxdb_client import InfluxDBClient
+from docx import Document
+from docx.shared import Inches
+from io import BytesIO
+from openai import OpenAI  # ✅ 올바른 방식
+import base64
+import os
 from dotenv import load_dotenv
-from flask_cors import CORS
 
 # ✅ 환경 변수 로드
 load_dotenv()
 
-# ✅ Flask 앱 및 SocketIO 초기화
+# ✅ Flask 앱 초기화
 app = Flask(__name__)
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="eventlet")
 
-# ✅ InfluxDB 클라이언트 설정
+# ✅ .env에서 민감 정보 불러오기
+openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 INFLUX_URL = os.getenv("INFLUX_URL")
 INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 INFLUX_ORG = os.getenv("INFLUX_ORG")
+
 influx_client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 
-# ✅ 최근 이벤트 상태 조회 함수
-def get_recent_status(bucket):
-    query = f'''
-    from(bucket: "{bucket}")
-      |> range(start: -30s)
-      |> filter(fn: (r) => r._measurement == "status_log" and r._field == "event_type")
-      |> sort(columns: ["_time"], desc: true)
-      |> limit(n: 3)
-    '''
-    result = influx_client.query_api().query(org=INFLUX_ORG, query=query)
-
-    events = []
-    for table in result:
-        for record in table.records:
-            events.append(record.get_value())
-    return events if events else None
-
-# ✅ WebSocket으로 상태 실시간 전송
-def emit_status():
-    prev_event_p1 = None
-    prev_event_p2 = None
-
-    while True:
-        # P1 상태 확인
-        events_p1 = get_recent_status("P1_status")
-        if events_p1:
-            latest_p1 = events_p1[0]
-            print(f"[Influx] P1 상태: {latest_p1}")
-            if latest_p1 != prev_event_p1:
-                print(f"[Influx] P1 상태 변경: {latest_p1}")
-                socketio.emit('status_update', {
-                    'P1-A': {'event_type': latest_p1}
-                })
-                prev_event_p1 = latest_p1
-
-        # P2 상태 확인
-        events_p2 = get_recent_status("P2_status")
-        if events_p2:
-            latest_p2 = events_p2[0]
-            print(f"[Influx] P2 상태: {latest_p2}")
-            if latest_p2 != prev_event_p2:
-                print(f"[Influx] P2 상태 변경: {latest_p2}")
-                socketio.emit('status_update', {
-                    'P2-A': {'event_type': latest_p2}
-                })
-                prev_event_p2 = latest_p2
-
-        socketio.sleep(1)
-
-# ✅ 메인 페이지 라우팅
+# ✅ 메인 대시보드 페이지
 @app.route("/")
 def index():
     return render_template("index.html")
-
-# ✅ 클라이언트 연결 시 초기 상태 전송
-@socketio.on('connect')
-def handle_connect():
-    print('Client connected')
-
-    events_p1 = get_recent_status("P1_status")
-    if events_p1:
-        latest_p1 = events_p1[0]
-        socketio.emit('status_update', {
-            'P1-A': {'event_type': latest_p1}
-        })
-
-    events_p2 = get_recent_status("P2_status")
-    if events_p2:
-        latest_p2 = events_p2[0]
-        socketio.emit('status_update', {
-            'P2-A': {'event_type': latest_p2}
-        })
-
 
 # ✅ 보고서 페이지
 @app.route("/report")
@@ -311,7 +242,6 @@ Flux 쿼리만 반환해줘. 설명은 필요 없어.
         return f"⚠️ 쿼리 처리 중 오류 발생: {str(e)}"
 
 
-# ✅ 서버 실행
+# ✅ 앱 실행
 if __name__ == "__main__":
-    socketio.start_background_task(target=emit_status)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    app.run(debug=True, host="0.0.0.0", port=5000)

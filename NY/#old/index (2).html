@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>실시간 제조 모니터링 시스템</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+  <div class="main-wrapper">
+    <h2>🔄 실시간 설비 가동률</h2>
+    <div class="status-grid">
+      <div id="P1-A" class="status-box">P1-A<br><span class="status-value">--%</span></div>
+      <div id="P2-A" class="status-box disabled">P2-A<br><span class="status-value">N/A</span></div>
+      <div id="P1-B" class="status-box disabled">P1-B<br><span class="status-value">N/A</span></div>
+      <div id="P2-B" class="status-box disabled">P2-B<br><span class="status-value">N/A</span></div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.min.js"></script>
+  <script>
+    const socket = io('http://192.168.0.85:5000');
+  
+    socket.on('status_update', (data) => {
+      // P1-A
+      const p1a = document.getElementById('P1-A');
+      if (p1a && data['P1-A']) {
+        const eventType = data['P1-A']['event_type'];
+        p1a.querySelector('.status-value').textContent = `${eventType}`;
+        if (eventType === "processing") {
+          p1a.style.backgroundColor = "#4CAF50";
+        } else if (eventType === "repair") {
+          p1a.style.backgroundColor = "orange";
+        } else if (eventType === "maintenance") {
+          p1a.style.backgroundColor = "yellow";
+        } else if (eventType === "failure") {
+          p1a.style.backgroundColor = "red";
+        } else {
+          p1a.style.backgroundColor = "#444";
+        }
+      }
+  
+      // P2-A
+      const p2a = document.getElementById('P2-A');
+      if (p2a && data['P2-A']) {
+        const eventType = data['P2-A']['event_type'];
+        p2a.querySelector('.status-value').textContent = `${eventType}`;
+        if (eventType === "processing") {
+          p2a.style.backgroundColor = "#4CAF50";
+        } else if (eventType === "repair") {
+          p2a.style.backgroundColor = "orange";
+        } else if (eventType === "maintenance") {
+          p2a.style.backgroundColor = "yellow";
+        } else if (eventType === "failure") {
+          p2a.style.backgroundColor = "red";
+        } else {
+          p2a.style.backgroundColor = "#444";
+        }
+      }
+    });
+  </script>
+  
