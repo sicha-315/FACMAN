@@ -63,17 +63,17 @@
               }
           
               socket.on('status_update', (data) => {
-                if (data['P1-A']) {
-                  updateStatus('P1-A_status', data['P1-A']['event_type']);
+                if (data['P1-A_status']) {
+                  updateStatus('P1-A_status', data['P1-A_status']['event_type']);
                 }
-                if (data['P2-A']) {
-                  updateStatus('P2-A_status', data['P2-A']['event_type']);
+                if (data['P2-A_status']) {
+                  updateStatus('P2-A_status', data['P2-A_status']['event_type']);
                 }
-                if (data['P1-B']) {
-                  updateStatus('P1-B_status', data['P1-B']['event_type']);
+                if (data['P1-B_status']) {
+                  updateStatus('P1-B_status', data['P1-B_status']['event_type']);
                 }
-                if (data['P2-B']) {
-                  updateStatus('P2-B_status', data['P2-B']['event_type']);
+                if (data['P2-B_status']) {
+                  updateStatus('P2-B_status', data['P2-B_status']['event_type']);
                 }
               });
             </script>

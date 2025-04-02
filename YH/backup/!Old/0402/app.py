@@ -26,35 +26,6 @@ INFLUX_TOKEN = os.getenv("INFLUX_TOKEN")
 INFLUX_ORG = os.getenv("INFLUX_ORG")
 influx_client = InfluxDBClient(url=INFLUX_URL, token=INFLUX_TOKEN, org=INFLUX_ORG)
 
-# ✅ 상태 emit 함수
-def emit_status():
-    print("[DEBUG] emit_status() 실행 시작")
-    prev_events = {
-        "P1-A": None,
-        "P1-B": None,
-        "P2-A": None,
-        "P2-B": None
-    }
-
-    while True:
-        for bucket, label in [
-            ("P1-A_status", "P1-A"),
-            ("P1-B_status", "P1-B"),
-            ("P2-A_status", "P2-A"),
-            ("P2-B_status", "P2-B")
-        ]:
-            events = get_recent_status(bucket)
-            if events:
-                latest = events[0]
-                if latest != prev_events[label]:
-                    print(f"[Influx] {label} 상태 변경: {latest}")
-                    socketio.emit('status_update', {
-                        label: {'event_type': latest}
-                    })
-                    prev_events[label] = latest
-        socketio.sleep(1)
-
-
 # ✅ 메인 페이지 라우팅 추가
 @app.route("/")
 def index():
@@ -66,39 +37,50 @@ def usefulness():
     return render_template("usefulness.html")  # 유용성 페이지 렌더링
 
 # ✅ 최근 이벤트 상태 조회 함수
-def get_recent_status(bucket):
+def get_recent_status(server_name):
+    bucket_name = f"{server_name}_status"
     query = f'''
-    from(bucket: "{bucket}")
+    from(bucket: "{bucket_name}")
       |> range(start: -30s)
       |> filter(fn: (r) => r._measurement == "status_log" and r._field == "event_type")
       |> sort(columns: ["_time"], desc: true)
-      |> limit(n: 3)
+      |> limit(n: 1)
     '''
-    result = influx_client.query_api().query(org=INFLUX_ORG, query=query)
+    try:
+        result = influx_client.query_api().query(org=INFLUX_ORG, query=query)
+        for table in result:
+            for record in table.records:
+                return record.get_value()
+    except Exception as e:
+        print(f"[ERROR] {server_name} 상태 조회 실패: {e}")
+    return None
 
-    events = []
-    for table in result:
-        for record in table.records:
-            events.append(record.get_value())
-    return events if events else None
-
+# ✅ WebSocket으로 상태 실시간 전송
+def emit_status():
+    prev_events = {"P1-A": None, "P1-B": None, "P2-A": None, "P2-B": None}
+    while True:
+        status_payload = {}
+        for server in prev_events.keys():
+            latest = get_recent_status(server)
+            if latest != prev_events[server]:
+                print(f"[Influx] {server} 상태 변경: {latest}")
+                status_payload[server] = {"event_type": latest}
+                prev_events[server] = latest
+        if status_payload:
+            socketio.emit('status_update', status_payload)
+        socketio.sleep(1)
 
 # ✅ 클라이언트 최초 연결 시 상태 전송
 @socketio.on('connect')
 def handle_connect():
     print('Client connected')
-    for bucket, label in [
-        ("P1-A_status", "P1-A"),
-        ("P1-B_status", "P1-B"),
-        ("P2-A_status", "P2-A"),
-        ("P2-B_status", "P2-B")
-    ]:
-        events = get_recent_status(bucket)
-        if events:
-            latest = events[0]
-            socketio.emit('status_update', {
-                label: {'event_type': latest}
-            })
+    status_payload = {}
+    for server in ["P1-A", "P1-B", "P2-A", "P2-B"]:
+        latest = get_recent_status(server)
+        if latest:
+            status_payload[server] = {"event_type": latest}
+    if status_payload:
+        socketio.emit('status_update', status_payload)
 
 # ✅ 보고서 페이지
 @app.route("/report")
@@ -290,4 +272,4 @@ Flux 쿼리만 반환해줘. 설명은 필요 없어.
 # ✅ 서버 실행
 if __name__ == "__main__":
     socketio.start_background_task(target=emit_status)
-    socketio.run(app, host='0.0.0.0', port=5000, debug=False, use_reloader=False, log_output=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=False, use_reloader=False)
