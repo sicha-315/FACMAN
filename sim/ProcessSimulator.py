@@ -1,6 +1,6 @@
 import random
 import time
-import datetime
+from datetime import datetime, timezone
 import redis
 import requests
 import numpy as np
@@ -13,7 +13,7 @@ class ItemIDGenerator:
         self.counter = 0
 
     def generate(self):
-        current_minute = datetime.datetime.now().strftime("%y%m%d%H%M")  # 년도를 두 자리로 표시
+        current_minute = datetime.now(timezone.utc).strftime("%y%m%d%H%M")  # 년도를 두 자리로 표시
 
         if current_minute != self.last_minute:
             self.last_minute = current_minute
@@ -45,8 +45,6 @@ class ProcessSimulator:
             org=influxdb_org
         )
         self._write_api = self._influxdb_client.write_api(write_options=SYNCHRONOUS)
-        self._status_bucket = f"{self._process_name}_status"
-        self._process_bucket = f"{self._process_name}_process"
 
         self._redis_client = redis.from_url(
             redis_url,
@@ -89,10 +87,10 @@ class ProcessSimulator:
             .field("event_type", event_type)
             .field("event_status", event_status)
             .field("available", int(available))
-            .time(datetime.datetime.now())
+            .time(datetime.now(timezone.utc))
         )
         try:
-            self._write_api.write(bucket=self._status_bucket, record=point)
+            self._write_api.write(bucket=f'{self._process_name}_status', record=point)
             print(f"Logging status: {event_type} {event_status} {available}")
         except Exception as e:
             print(f"InfluxDB status_log error: {e}")
@@ -104,11 +102,11 @@ class ProcessSimulator:
             .tag("process_id", process_id)
             .tag("line_id", line_id)
             .field("status", status)
-            .time(datetime.datetime.now())
+            .time(datetime.now(timezone.utc))
         )
         try:
-            self._write_api.write(bucket=self._process_bucket, record=point)
-            print(f"Logging process:{self._process_bucket} {product_id} {process_id} {line_id} {status}")
+            self._write_api.write(bucket="process", record=point)
+            print(f"Logging process: process {product_id} {process_id} {line_id} {status}")
         except Exception as e:
             print(f"InfluxDB process_log error: {e}")
 
@@ -182,7 +180,7 @@ class ProcessSimulator:
                 print(f"Produced: {item}")
                 item_id += 1
                 time.sleep(self._step_time)
-                self._logging_process(item, self._process_next[:-2], self._process_next[1:], "arrival")
+                self._logging_process(item, self._process_next[:-2], self._process_next, "arrival")
             except Exception as e:
                 print(e)
 
@@ -195,7 +193,7 @@ class ProcessSimulator:
                 if not self._process_step(item):
                     continue
                 self._redis_client.rpush(self._process_next, item)
-                self._logging_process(item, self._process_next[:-2], self._process_next[1:], "arrival")
+                self._logging_process(item, self._process_next[:-2], self._process_next, "arrival")
                 self._check_maintenance()
             except Exception as e:
                 print(e)
