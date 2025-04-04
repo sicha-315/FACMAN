@@ -1,7 +1,6 @@
 import random
 import time
-import threading
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import redis
 import requests
 import numpy as np
@@ -57,9 +56,13 @@ class ProcessSimulator:
         self._is_broken = False
         self._runtime = 0.0
         self._failure_prob = 0.0
-        self._is_maintenance = False
         
         self.sim_speed = sim_speed        
+        
+        self._start_datetime = datetime(2025, 3, 24, 9, 0, 0, tzinfo=timezone.utc)
+        self._end_datetime   = datetime(2025, 3, 24, 18, 0, 0, tzinfo=timezone.utc)
+        self._current_datetime = self._start_datetime
+        
         self._mode = mode
         self._item_id_generator = ItemIDGenerator()
         
@@ -72,17 +75,15 @@ class ProcessSimulator:
         else:
             raise ValueError("Invalid mode")
         
-        threading.Thread(target=self._check_maintenance, daemon=True).start()
-        
     @property
     def _step_time(self):
-        return max(np.random.normal(10, 2), 5) / self.sim_speed
+        return max(np.random.normal(10, 2), 5)
     @property
     def _maintain_time(self):
-        return max(np.random.normal(100, 5), 10) / self.sim_speed
+        return max(np.random.normal(15, 5), 10)
     @property
     def _repair_time(self):
-        return max(np.random.normal(60, 10), 45) / self.sim_speed
+        return max(np.random.normal(60, 10), 45)
 
     def _logging_status(self, event_type, event_status, available):
         point = (
@@ -91,11 +92,11 @@ class ProcessSimulator:
             .field("event_type", event_type)
             .field("event_status", event_status)
             .field("available", int(available))
-            .time(datetime.now(timezone.utc))
+            .time(self._current_datetime)
         )
         try:
             self._write_api.write(bucket=f'{self._process_name}_status', record=point)
-            print(f"Logging status: {event_type} {event_status} {available}")
+            print(f"[{self._current_datetime}] Logging status: {event_type} {event_status} {available}")
         except Exception as e:
             print(f"InfluxDB status_log error: {e}")
 
@@ -106,11 +107,11 @@ class ProcessSimulator:
             .tag("process_id", process_id)
             .tag("line_id", line_id)
             .field("status", status)
-            .time(datetime.now(timezone.utc))
+            .time(self._current_datetime)
         )
         try:
             self._write_api.write(bucket="process", record=point)
-            print(f"Logging process: process {product_id} {process_id} {line_id} {status}")
+            print(f"[{self._current_datetime}] Logging process: process {product_id} {process_id} {line_id} {status}")
         except Exception as e:
             print(f"InfluxDB process_log error: {e}")
 
@@ -119,14 +120,14 @@ class ProcessSimulator:
 
     def _repair(self):
         self._logging_status("repair", "start", False)
-        time.sleep(self._repair_time)
+        self._sleep_and_advance(self._repair_time)
         self._reset()
         self._logging_status("repair", "finish", True)
         self._logging_status("processing", "", True)
 
     def _maintenance(self):
         self._logging_status("maintenance", "start", False)
-        time.sleep(self._maintain_time)
+        self._sleep_and_advance(self._maintain_time)
         self._reset()
         self._logging_status("maintenance", "finish", True)
         self._logging_status("processing", "", True)
@@ -135,18 +136,23 @@ class ProcessSimulator:
         self._runtime = 0.0
         self._failure_prob = 0.0
         self._is_broken = False
-        self._is_maintenance = False
 
     def _update_failure_rate(self):
         self._failure_prob = 1 - np.exp(-self._runtime / 120)
 
     def _check_maintenance(self):
-        pubsub = self._redis_client.pubsub()
-        pubsub.subscribe(f"{self._process_name}_maintenance")
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                print(f"Received maintenance command: {message['data']}")
-                self._is_maintenance = True
+        if self._agent_url is None:
+            if self._failure_prob > 0.15:
+                self._maintenance()
+        else:
+            try:
+                res = requests.post(self._agent_url, json={"process_id": self._process_name}, timeout=5)
+                res.raise_for_status()
+                result = res.json()
+                if result.get("need_maintenance", False):
+                    self._maintenance()
+            except Exception as e:
+                print(e)
 
     def _receive_item(self, process_name):
         item = self._redis_client.blpop(process_name)
@@ -156,40 +162,40 @@ class ProcessSimulator:
 
     def _process_step(self, item):
         self._logging_process(item, self._process_name[:-2], self._process_name, "start")
-        time.sleep(self._step_time)
+        self._sleep_and_advance(self._step_time)
         self._runtime += self._step_time
         self._update_failure_rate()
         if self._should_fail():
             self._is_broken = True
             self._logging_status("failure", "", False)
             self._logging_process(item, self._process_name[:-2], self._process_name, "interrupt")
-            time.sleep(5)
+            self._sleep_and_advance(5)
             self._repair()
             return False
         self._logging_process(item, self._process_name[:-2], self._process_name, "finish")
         return True
+    
+    def _sleep_and_advance(self, seconds):
+        time.sleep(seconds/self.sim_speed)
+        self._current_datetime += timedelta(seconds=seconds)
 
     def _run_producer(self):
         item_id = 0
-        while True:
+        while self._current_datetime < self._end_datetime:
             try:
                 item = self._item_id_generator.generate() + self._process_next[-1]
                 self._redis_client.rpush(self._process_next, item)
                 self._logging_process(item, self._process_name, "", "input")
                 print(f"Produced: {item}")
                 item_id += 1
-                time.sleep(self._step_time)
+                self._sleep_and_advance(self._step_time)
                 self._logging_process(item, self._process_next[:-2], self._process_next, "arrival")
             except Exception as e:
                 print(e)
 
     def _run_relay(self):
-        while True:
+        while self._current_datetime < self._end_datetime:
             try:
-                if self._is_maintenance:
-                    self._maintenance()
-                    continue
-                
                 item = self._receive_item(self._process_name)
                 if item is None:
                     continue
@@ -197,16 +203,12 @@ class ProcessSimulator:
                     continue
                 self._redis_client.rpush(self._process_next, item)
                 self._logging_process(item, self._process_next[:-2], self._process_next, "arrival")
-                
-                if self._is_maintenance:
-                    self._maintenance()
-                    continue
-                    
+                self._check_maintenance()
             except Exception as e:
                 print(e)
 
     def _run_consumer(self):
-        while True:
+        while self._current_datetime < self._end_datetime:
             try:
                 item = self._receive_item(self._process_name)
                 if item is None:

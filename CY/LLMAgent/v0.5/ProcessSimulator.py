@@ -1,6 +1,5 @@
 import random
 import time
-import threading
 from datetime import datetime, timezone
 import redis
 import requests
@@ -57,7 +56,6 @@ class ProcessSimulator:
         self._is_broken = False
         self._runtime = 0.0
         self._failure_prob = 0.0
-        self._is_maintenance = False
         
         self.sim_speed = sim_speed        
         self._mode = mode
@@ -72,14 +70,12 @@ class ProcessSimulator:
         else:
             raise ValueError("Invalid mode")
         
-        threading.Thread(target=self._check_maintenance, daemon=True).start()
-        
     @property
     def _step_time(self):
         return max(np.random.normal(10, 2), 5) / self.sim_speed
     @property
     def _maintain_time(self):
-        return max(np.random.normal(100, 5), 10) / self.sim_speed
+        return max(np.random.normal(15, 5), 10) / self.sim_speed
     @property
     def _repair_time(self):
         return max(np.random.normal(60, 10), 45) / self.sim_speed
@@ -135,18 +131,23 @@ class ProcessSimulator:
         self._runtime = 0.0
         self._failure_prob = 0.0
         self._is_broken = False
-        self._is_maintenance = False
 
     def _update_failure_rate(self):
         self._failure_prob = 1 - np.exp(-self._runtime / 120)
 
     def _check_maintenance(self):
-        pubsub = self._redis_client.pubsub()
-        pubsub.subscribe(f"{self._process_name}_maintenance")
-        for message in pubsub.listen():
-            if message['type'] == 'message':
-                print(f"Received maintenance command: {message['data']}")
-                self._is_maintenance = True
+        if self._agent_url is None:
+            if self._failure_prob > 0.15:
+                self._maintenance()
+        else:
+            try:
+                res = requests.post(self._agent_url, json={"process_id": self._process_name}, timeout=5)
+                res.raise_for_status()
+                result = res.json()
+                if result.get("need_maintenance", False):
+                    self._maintenance()
+            except Exception as e:
+                print(e)
 
     def _receive_item(self, process_name):
         item = self._redis_client.blpop(process_name)
@@ -186,10 +187,6 @@ class ProcessSimulator:
     def _run_relay(self):
         while True:
             try:
-                if self._is_maintenance:
-                    self._maintenance()
-                    continue
-                
                 item = self._receive_item(self._process_name)
                 if item is None:
                     continue
@@ -197,11 +194,7 @@ class ProcessSimulator:
                     continue
                 self._redis_client.rpush(self._process_next, item)
                 self._logging_process(item, self._process_next[:-2], self._process_next, "arrival")
-                
-                if self._is_maintenance:
-                    self._maintenance()
-                    continue
-                    
+                self._check_maintenance()
             except Exception as e:
                 print(e)
 
