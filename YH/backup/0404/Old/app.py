@@ -56,46 +56,14 @@ def emit_status():
 
 
 # ✅ 메인 페이지 라우팅 추가
+@app.route("/")
 def index():
     return render_template("index.html")
-app.route("/")(index)
 
-# ✅ 유용성 페이지 라우팅 추가
+# ✅ 유용성 페이지 라우팅
+@app.route("/usefulness")
 def usefulness():
-    return render_template("usefulness.html")
-app.route("/usefulness")(usefulness)
-
-# ✨ ✅ 유용성 데이터 API 라우팅 추가
-@app.route("/get_usefulness_data", methods=["POST"])
-def get_usefulness_data():
-    try:
-        data = request.get_json()
-        process = data.get("process", "P1-A")
-        time_range = data.get("range", "6h")
-
-        # 예시 Flux 코드는 평균 available 계산을 가지고 올 수 있어요
-        query = f'''
-        from(bucket: "{process}_status")
-          |> range(start: -{time_range})
-          |> filter(fn: (r) => r._measurement == "status_log" and r._field == "available")
-          |> aggregateWindow(every: 1h, fn: mean, createEmpty: false)
-          |> yield(name: "mean")
-        '''
-
-        result = influx_client.query_api().query(org=INFLUX_ORG, query=query)
-        labels, values = [], []
-        for table in result:
-            for record in table.records:
-                labels.append(record.get_time().strftime("%H:%M"))
-                values.append(round(record.get_value() * 100, 1))  # 턀시티지
-
-        return jsonify({
-            "labels": labels,
-            "values": values
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+    return render_template("usefulness.html")  # 유용성 페이지 렌더링
 
 # ✅ 최근 이벤트 상태 조회 함수
 def get_recent_status(bucket):
@@ -284,6 +252,10 @@ def handle_influx_query(user_message):
   - "P1-B_status"
   - "P2-A_status"
   - "P2-B_status"
+  - "P1-A_process"
+  - "P1-B_process"
+  - "P2-A_process"
+  - "P2-B_process"
 - "your_bucket" 같은 표현은 절대 사용하면 안 돼.
 - 쿼리는 실행 가능한 형태여야 하고, 결과에 _value 또는 available, event_type 필드가 있어야 해.
 
