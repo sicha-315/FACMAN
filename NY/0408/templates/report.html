@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8" />
+  <title>제조 보고서 생성</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    .sidebar {
+      position: fixed;
+      height: 100vh;
+      width: 220px;
+      background-color: #f0f0f0;
+      padding: 20px;
+    }
+    header {
+      position: fixed;
+      width: calc(100% - 220px);
+      top: 0;
+      background-color: #fff;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    .layout-column {
+      margin-left: 220px;
+      padding-top: 80px;
+    }
+    .main-wrapper {
+      display: flex;
+      justify-content: space-between;
+    }
+    .main {
+      width: 75%;
+    }
+    .right-sidebar {
+      width: 20%;
+      padding: 20px;
+    }
+    .search-bar {
+      margin-bottom: 15px;
+    }
+    .search-bar input,
+    .search-bar select {
+      margin-right: 10px;
+      padding: 5px;
+      font-size: 14px;
+    }
+    .report-row-container {
+      display: flex;
+      gap: 20px;
+    }
+    .downtime-chart-group {
+      display: flex;
+      justify-content: flex-start;
+      gap: 20px;
+    }
+    .chatbot textarea {
+      width: 100%;
+      height: 100px;
+    }
+    .log-entry {
+      padding: 5px;
+      border-bottom: 1px solid #ccc;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ✅ Sidebar -->
+  <nav class="sidebar">
+    <div class="logo-box">
+      <img src="/static/images/facman.png" alt="FACMAN Logo" class="logo-img" />
+    </div>
+    <h2>📊 대시보드</h2>
+    <a href="/">🏠 메인 페이지</a>
+    <a href="/productivity">🖥️ 생산성</a>
+    <a href="/quality">🖥️ 양품률</a>
+    <a href="/plan">🖥️ 생산계획</a>
+    <a href="/report">📝 보고서 생성</a>
+  </nav>
+
+  <header>
+    <div><strong>제조 모니터링 시스템</strong></div>
+    <div class="header-right">
+      <div class="user-icon">👤 <span class="user-name">홍길동(대리)</span></div>
+      <div class="clock" id="clock">--:--:--</div>
+      <div>🔔 알림 3건</div>
+    </div>
+  </header>
+
+    <div class="main-wrapper">
+      <div class="main">
+        <div class="section">
+          <h2>📝 제조 보고서 생성</h2>
+          <div class="search-bar">
+            <label>공정 선택:</label>
+            <div id="processCheckboxes">
+              <label><input type="checkbox" value="P1-A"> P1-A</label>
+              <label><input type="checkbox" value="P1-B"> P1-B</label>
+              <label><input type="checkbox" value="P2-A"> P2-A</label>
+              <label><input type="checkbox" value="P2-B"> P2-B</label>
+            </div>
+
+            <label>기간 선택:</label>
+            <select id="periodType">
+              <option value="daily">일간</option>
+              <option value="weekly">주간</option>
+              <option value="monthly">월간</option>
+            </select>
+
+            <select id="range">
+              <option value="1시간">1시간</option>
+              <option value="3시간">3시간</option>
+              <option value="6시간">6시간</option>
+              <option value="9시간">9시간</option>
+              <option value="custom">사용자 지정</option>
+            </select>
+
+            <input type="datetime-local" id="startTime" style="display:none;">
+            <input type="datetime-local" id="endTime" style="display:none;">
+          </div>
+
+          <div class="search-bar">
+            <label>보고서 포함 항목:</label>
+            <label><input type="checkbox" id="includeAvailability"> 가동률</label>
+            <label><input type="checkbox" id="includeProduction"> 생산실적</label>
+            <label><input type="checkbox" id="includeDowntime"> 다운타임</label>
+            <label><input type="checkbox" id="includeFailureCount"> 고장 건수</label>
+            <label><input type="checkbox" id="includeMTBF"> MTBF</label>
+            <label><input type="checkbox" id="includeMTTR"> MTTR</label>
+          </div>
+
+          <div class="search-bar">
+            <button onclick="generateReport()">보고서 생성</button>
+            <button onclick="downloadDocx()">📥 종합 보고서(.docx) 다운로드</button>
+            <button onclick="downloadExcel()">📊 기초 데이터(.xlsx) 다운로드</button>
+          </div>
+        </div>
+        <div class="section">
+          <div id="reportBox">📄 생성된 보고서 내용이 표시됩니다.</div>
+          <div id="tabs" class="tab-container"></div>
+          <div id="chartsArea"></div>
+        </div>
+      </div>
+
+      <aside class="right-sidebar">
+        <div class="section chatbot">
+          <h2>💬 챗봇</h2>
+          <textarea placeholder="예: A-2 서버 상태 알려줘"></textarea>
+          <button>질문하기</button>
+          <div class="chat-response">🤖 챗봇 응답이 여기에 표시됩니다.</div>
+        </div>
+        <div class="section">
+          <h2>🧠 에이전트 판단 로그</h2>
+          <button onclick="toggleLog()">📜 로그 이력 보기</button>
+          <div class="log-area" id="logArea" style="display:none;">
+            <div class="log-entry">[09:12] 서버 A-2: 점검 필요 → 서버 A-1로 이관</div>
+            <div class="log-entry">[09:08] 서버 B-1: 이상 진동 감지</div>
+            <div class="log-entry">[08:55] 서버 A-1: 정상화 완료</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleString('ko-KR', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toggleLog() {
+      const logArea = document.getElementById("logArea");
+      logArea.style.display = logArea.style.display === "none" ? "block" : "none";
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const rangeSelect = document.getElementById("range");
+      const startTime = document.getElementById("startTime");
+      const endTime = document.getElementById("endTime");
+
+      rangeSelect.addEventListener("change", function () {
+        const isCustom = this.value === "custom";
+        startTime.style.display = isCustom ? "inline-block" : "none";
+        endTime.style.display = isCustom ? "inline-block" : "none";
+      });
+    });
+  </script>
+
+  <script src="/static/report.js"></script>
+  <script src="/static/chatbot.js"></script>
+</body>
+
+</html>
