@@ -21,16 +21,18 @@ if __name__ == "__main__":
     influxdb_org = os.getenv("INFLUXDB_ORG")
     redis_url = os.getenv("REDIS_URL")
     
-    sim = ProcessSimulator(
-        mode=args.mode,
-        process_name=args.process_name,
-        process_next=args.process_next,
-        influxdb_url=influxdb_url,
-        influxdb_token=influxdb_token,
-        influxdb_org=influxdb_org,
-        redis_url=redis_url,
-        agent_url=args.agent_url,
-        sim_speed=args.sim_speed
-    )
-    
-    sim.run()
+    for i in range(1, 5, 1):
+        sim = ProcessSimulator(
+            mode=args.mode,
+            process_name=args.process_name,
+            process_next=args.process_next,
+            influxdb_url=influxdb_url,
+            influxdb_token=influxdb_token,
+            influxdb_org=influxdb_org,
+            redis_url=redis_url,
+            agent_url=args.agent_url,
+            sim_speed=args.sim_speed,
+            day = i
+        )
+        
+        sim.run()

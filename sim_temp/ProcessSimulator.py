@@ -35,6 +35,7 @@ class ProcessSimulator:
         redis_url: str = "redis://localhost:6379",
         agent_url: str = None,
         sim_speed: float = 5.0,
+        day: int = 24,
     ):
         self._process_name = process_name
         self._process_next = process_next
@@ -57,10 +58,10 @@ class ProcessSimulator:
         self._runtime = 0.0
         self._failure_prob = 0.0
         
-        self.sim_speed = sim_speed        
+        self.sim_speed = sim_speed
         
-        self._start_datetime = datetime(2025, 3, 24, 9, 0, 0, tzinfo=timezone.utc)
-        self._end_datetime   = datetime(2025, 3, 24, 18, 0, 0, tzinfo=timezone.utc)
+        self._start_datetime = datetime(2025, 4, day, 9, 0, 0, tzinfo=timezone.utc)
+        self._end_datetime   = datetime(2025, 4, day, 18, 0, 0, tzinfo=timezone.utc)
         self._current_datetime = self._start_datetime
         
         self._mode = mode
