@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>제조 보고서 생성</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <!-- ✅ Sidebar -->
+  <nav class="sidebar">
+    <div class="logo-box">
+      <img src="{{ url_for('static', filename='images/facman.png') }}" alt="FACMAN Logo" class="logo-img" />
+    </div>
+    <h2>📊 대시보드</h2>
+    <a href="/">🏠 메인 페이지</a>
+    <a href="server_A1.html">🖥️ 서버 A-1</a>
+    <a href="server_A2.html">🖥️ 서버 A-2</a>
+    <a href="server_B1.html">🖥️ 서버 B-1</a>
+    <a href="server_B2.html">🖥️ 서버 B-2</a>
+    <a href="/report">📝 보고서 생성</a>
+  </nav>
+
+  <div class="layout-column">
+    <!-- ✅ Header -->
+    <header>
+      <div><strong>실시간 제조 모니터링 시스템</strong></div>
+      <div style="display: flex; align-items: center; gap: 20px;">
+        <div style="display: flex; align-items: center; gap: 6px;">
+          <span>👤</span>
+          <span><strong>홍길동(대리)</strong></span>
+        </div>
+        <div class="clock" id="clock">--:--:--</div>
+        <div>🔔 알림 3건</div>
+      </div>
+    </header>
+
+    <div class="main-wrapper">
+      <!-- ✅ 메인 콘텐츠: 보고서 생성 -->
+      <div class="main">
+        <div class="section">
+          <h2>📝 제조 보고서 생성</h2>
+          <div class="search-bar" style="margin-bottom: 10px;">
+            <label>공정 선택: </label>
+            <select id="process">
+              <option value="P1">P1</option>
+              <option value="P2">P2</option>
+            </select>
+            <label>범위: </label>
+            <select id="range">
+              <option value="10m">10분</option>
+              <option value="1h">1시간</option>
+              <option value="6h">6시간</option>
+              <option value="12h">12시간</option>
+              <option value="24h">24시간</option>
+            </select>
+            <button onclick="generateReport()">생성</button>
+            <button onclick="downloadDocx()">📥 다운로드</button>
+          </div>
+
+          <pre id="reportBox">여기에 생성된 보고서 내용이 표시됩니다.</pre>
+
+          <h4>✅ 가동률 변화</h4>
+          <div style="width: 250px; height: 250px; margin: auto;">
+            <canvas id="gaugeChart"></canvas>
+          </div>
+          <img id="availabilityImage" style="display:none;" />
+
+          <h4 style="margin-top: 30px;">📊 고장 발생 분포</h4>
+          <table id="failureTable" style="display: none; border-collapse: collapse; width: 100%;">
+            <thead>
+              <tr><th>시간대</th><th>고장 수</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ✅ 오른쪽: 챗봇 & 로그 -->
+      <aside class="right-sidebar">
+        <div class="section chatbot">
+          <h2>💬 챗봇</h2>
+          <textarea placeholder="예: A-2 서버 상태 알려줘"></textarea>
+          <button>질문하기</button>
+          <div class="chat-response">🤖 챗봇 응답이 여기에 표시됩니다.</div>
+        </div>
+
+        <div class="section">
+          <h2>🧠 에이전트 판단 로그</h2>
+          <button onclick="toggleLog()">📜 로그 이력 보기</button>
+          <div class="log-area" id="logArea" style="display:none;">
+            <div class="log-entry">[09:12] 서버 A-2: 점검 필요 → 서버 A-1로 이관</div>
+            <div class="log-entry">[09:08] 서버 B-1: 이상 진동 감지</div>
+            <div class="log-entry">[08:55] 서버 A-1: 정상화 완료</div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  </div>
+
+  <!-- ✅ 시계 & 로그 스크립트 -->
+  <script>
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent =
+        now.toLocaleString('ko-KR', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toggleLog() {
+      const logArea = document.getElementById("logArea");
+      logArea.style.display = logArea.style.display === "none" ? "block" : "none";
+    }
+  </script>
+
+  <!-- ✅ 보고서 생성 JS -->
+  <script src="{{ url_for('static', filename='report.js') }}"></script>
+
+      <!-- ✅ 챗봇 AI Agent 작동 JS -->
+  <script src="{{ url_for('static', filename='chatbot.js') }}"></script>
+
+</body>
+</html>
