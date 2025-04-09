@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>제조 모니터링 시스템</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+  <nav class="sidebar">
+    <div class="logo-box">
+      <img src="{{ url_for('static', filename='images/facman.png') }}" alt="FACMAN Logo" class="logo-img" />
+    </div>    
+    <h2>📊 대시보드</h2>
+    <a href="{{ url_for('index') }}">🏠 메인 페이지</a>
+    <a href="{{ url_for('usefulness') }}">🖥️ P1-A</a>
+    <a href="server_A2.html">🖥️ P1-B</a>
+    <a href="server_B1.html">🖥️ P2-A</a>
+    <a href="server_B2.html">🖥️ P2-B</a>
+    <a href="{{ url_for('report_page') }}">📝 보고서 생성</a>
+  </nav>
+
+  <div class="layout-column">
+    <header>
+      <div><strong>제조 모니터링 시스템</strong></div>
+      <div class="header-right">
+        <div class="user-icon">👤 <span class="user-name">홍길동(대리)</span></div>
+        <div class="clock" id="clock">--:--:--</div>
+        <div>🔔 알림 3건</div>
+      </div>
+    </header>
+
+    <div class="main-wrapper">
+      <div class="main">
+        <!-- ✅ 설비 상태 + 유용성 섹션 -->
+        <div class="section-row-grid">
+          <div class="section section-status">
+            <h2>설비 상태</h2>
+            <div class="status-grid-2x2">
+              <div id="P1-A_status" class="status-box">P1-A<br><span class="status-value">--%</span></div>
+              <div id="P2-A_status" class="status-box">P2-A<br><span class="status-value">--%</span></div>
+              <div id="P1-B_status" class="status-box">P1-B<br><span class="status-value">--%</span></div>
+              <div id="P2-B_status" class="status-box">P2-B<br><span class="status-value">--%</span></div>
+            </div>
+
+            <!-- 🆕 설비별 라인 차트 추가 -->
+            <div class="equipment-line-chart" style="margin-top: 20px;">
+              <h3 class="chart-title">설비별 생산 추이</h3>
+              <iframe
+                src="http://192.168.0.61:3000/d-solo/aehvqcfaq6qyoe/new-dashboard2?orgId=1&from=1744142615503&to=1744164215503&timezone=browser&showCategory=Panel%20options&panelId=1&__feature.dashboardSceneSolo"
+                frameborder="0"
+                width="100%"
+                height="260"
+                style="border-radius: 10px;"
+              ></iframe>
+            </div>
+          
+            <!-- 🆕 실시간 상태 업데이트를 위한 Socket.IO 스크립트 추가 -->
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.min.js"></script>
+            <script>
+              const socket = io('http://172.18.192.1:5000', {
+                transports: ['websocket'],
+              });
+              const statusMap = {
+                "processing": "#4CAF50",
+                "repair": "orange",
+                "maintenance": "yellow",
+                "failure": "red"
+              };
+          
+              function updateStatus(id, eventType) {
+                const box = document.getElementById(id);
+                if (box) {
+                  box.querySelector('.status-value').textContent = `${eventType}`;
+                  box.style.backgroundColor = statusMap[eventType] || "#444";
+                }
+              }
+          
+              socket.on('status_update', (data) => {
+                if (data['P1-A']) {
+                  updateStatus('P1-A_status', data['P1-A']['event_type']);
+                }
+                if (data['P2-A']) {
+                  updateStatus('P2-A_status', data['P2-A']['event_type']);
+                }
+                if (data['P1-B']) {
+                  updateStatus('P1-B_status', data['P1-B']['event_type']);
+                }
+                if (data['P2-B']) {
+                  updateStatus('P2-B_status', data['P2-B']['event_type']);
+                }
+              });
+            </script>
+          </div>
+
+          <div class="section section-availability">
+            <h2>OEE</h2>
+            <!-- 긴 차트 -->
+            <div class="chart-full">
+              <iframe
+                src="http://192.168.0.61:3000/d-solo/cehvf8pcyj1fkd/new-dashboard?orgId=1&from=1744076751464&to=1744077051464&timezone=browser&refresh=5s&panelId=5&__feature.dashboardSceneSolo"
+                frameborder="0"></iframe>
+            </div>
+
+            <!-- 하단 3개 차트 제목 -->
+            <h3 class="chart-title">전체 유용성, 생산성, 양품률</h3>
+            
+            <!-- 하단 3개 차트 -->
+            <div class="chart-row">
+              <iframe
+                src="http://192.168.0.61:3000/d-solo/cehvf8pcyj1fkd/new-dashboard?orgId=1&from=1743811930106&to=1743812230106&timezone=browser&refresh=5s&panelId=2&__feature.dashboardSceneSolo"
+                frameborder="0"></iframe>
+              <iframe
+                src="http://localhost:3000/d-solo/cehvf8pcyj1fkd/new-dashboard?orgId=1&from=1744076585802&to=1744076885802&timezone=browser&refresh=5s&panelId=3&__feature.dashboardSceneSolo"
+                frameborder="0"></iframe>
+              <iframe
+                src="http://192.168.0.61:3000/d-solo/cehvf8pcyj1fkd/new-dashboard?orgId=1&from=1743811961128&to=1743812261128&timezone=browser&refresh=5s&panelId=4&__feature.dashboardSceneSolo"
+                frameborder="0"></iframe>
+            </div>
+          </div>
+        </div>       
+
+        <!-- ✅ 하단: 설비 가동 요약 -->
+        <div class="section">
+          <h2>설비 운영 지표 요약</h2>
+          <div class="charts">
+            <div class="chart-box"><iframe src="http://192.168.0.61:3000/d-solo/cehvf8pcyj1fkd/new-dashboard?orgId=1&from=1744076693156&to=1744076993156&timezone=browser&refresh=5s&panelId=7&__feature.dashboardSceneSolo" width="100%" height="300" frameborder="0"></iframe></div>
+            <div class="chart-box"><iframe src="http://192.168.0.61:3000/d-solo/cehvf8pcyj1fkd/new-dashboard?orgId=1&from=1744076511267&to=1744076811267&timezone=browser&refresh=5s&panelId=9&__feature.dashboardSceneSolo" width="100%" height="300" frameborder="0"></iframe></div>
+            <div class="chart-box"><iframe src="http://192.168.0.61:3000/d-solo/cehvf8pcyj1fkd/new-dashboard?orgId=1&from=1744076733103&to=1744077033103&timezone=browser&refresh=5s&panelId=8&__feature.dashboardSceneSolo" width="100%" height="300" frameborder="0"></iframe></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ✅ 오른쪽 챗봇 사이드바 -->
+      <aside class="right-sidebar">
+        <div class="section chatbot">
+          <h2>💬 챗봇</h2>
+      
+          <!-- 채팅 히스토리 -->
+          <div id="chatHistory" class="chat-history"></div>
+      
+          <!-- 입력 및 버튼 영역 -->
+          <div class="chat-input-box">
+            <textarea id="chatInput" placeholder="예: P1-A 가동률 알려줘"></textarea>
+            <div style="display: flex; justify-content: space-between; gap: 6px;">
+              <button id="chatSendBtn">질문하기</button>
+              <button id="chatClearBtn" title="대화 초기화" class="clear-btn">🗑️</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+      
+    </div>
+  </div>
+
+  <!-- 유용성 페이지용 JS 파일 -->
+  <script src="{{ url_for('static', filename='js/usefulness.js') }}"></script>
+
+  <!-- 챗봇 JS 파일 -->
+  <script src="{{ url_for('static', filename='js/chat_langgraph.js') }}"></script>
+  
+  <script>
+    function updateClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent =
+        now.toLocaleString('ko-KR', { hour12: false });
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    function toggleLog() {
+      const logArea = document.getElementById("logArea");
+      logArea.style.display = logArea.style.display === "none" ? "block" : "none";
+    }
+
+  </script>
+
+  <script>
+  // ✅ 이벤트 바인딩 정리
+  function clearChatHistory() {
+    document.getElementById("chatHistory").innerHTML = "";
+  }
+  
+  document.addEventListener("DOMContentLoaded", () => {
+    const sendBtn = document.getElementById("chatSendBtn");
+    const clearBtn = document.getElementById("chatClearBtn");
+    const input = document.getElementById("chatInput");
+  
+    if (sendBtn) sendBtn.addEventListener("click", sendLangGraphMessage);
+    if (clearBtn) clearBtn.addEventListener("click", clearChatHistory);
+  
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendLangGraphMessage();
+      }
+    });
+  });
+  </script>
+</body>
+</html>
