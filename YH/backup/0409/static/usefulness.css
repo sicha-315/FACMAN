@@ -216,15 +216,15 @@ iframe {
   margin-top: 6px;
 }
 
-.chat-buttons button {
-  flex: 1;
+#chatSendBtn {
+  flex: 3;                  /* 너비를 넓게 */
   padding: 12px;
-  font-size: 15px;
-}
-
-.chat-buttons button:first-child {
+  font-size: 16px;
   background-color: #2c3e50;
   color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .chat-buttons .clear-btn {
@@ -240,3 +240,22 @@ iframe {
 .chat-buttons .clear-btn:hover {
   background-color: #ddd;
 }
+
+.section h2 {
+  margin-bottom: 0; /* 제목과 그리드 간격 줄이기 */
+}
+
+.grid-4col {
+  margin-top: 0; /* 추가 간격 방지 */
+}
+
+.stat-card {
+  margin-top: 0;
+}
+
+.chart-box h3,
+.info-box h3 {
+  margin-top: 5px; /* 제목 위 간격 제거 */
+  margin-bottom: 8px; /* 제목 아래 살짝 간격 */
+}
+

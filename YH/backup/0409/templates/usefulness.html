@@ -16,7 +16,7 @@
     <div class="header-right">
       <div class="user-icon">👤 <span class="user-name">홍길동(대리)</span></div>
       <div class="clock" id="clock">--:--:--</div>
-      <div>🔔 알림 3건</div>
+      <div>🔔 알림</div>
     </div>
   </header>
 
@@ -97,77 +97,17 @@
     </div>
   </div>
 
+  <!-- 챗봇 JS 파일 -->
+  <script src="{{ url_for('static', filename='js/chat_langgraph.js') }}"></script>
+
   <!-- ✅ 스크립트 -->
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const socket = io('http://172.18.192.1:5000', { transports: ['websocket'] });
-      const statusMap = {
-        "processing": "#4CAF50",
-        "repair": "orange",
-        "maintenance": "yellow",
-        "failure": "red"
-      };
-
-      function updateStatus(id, eventType) {
-        const box = document.getElementById(id);
-        if (box) {
-          box.querySelector('.status-value').textContent = `${eventType}`;
-          box.style.backgroundColor = statusMap[eventType] || "#444";
-        }
-      }
-
-      socket.on('status_update', (data) => {
-        if (data['P1-A']) {
-          updateStatus('P1-A_status', data['P1-A']['event_type']);
-        }
-      });
-
-      function updateClock() {
+         function updateClock() {
         const now = new Date();
         document.getElementById("clock").textContent = now.toLocaleString("ko-KR", { hour12: false });
       }
       updateClock();
       setInterval(updateClock, 1000);
-
-      const sendBtn = document.getElementById("chatSendBtn");
-      const clearBtn = document.getElementById("chatClearBtn");
-      const input = document.getElementById("chatInput");
-      const history = document.getElementById("chatHistory");
-
-      if (sendBtn) sendBtn.addEventListener("click", sendLangGraphMessage);
-      if (clearBtn) clearBtn.addEventListener("click", () => {
-        history.innerHTML = "";
-      });
-
-      input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter" && !e.shiftKey) {
-          e.preventDefault();
-          sendLangGraphMessage();
-        }
-      });
-
-      function sendLangGraphMessage() {
-        const message = input.value.trim();
-        if (!message) return;
-
-        const userMsg = document.createElement("div");
-        userMsg.className = "chat-box";
-        userMsg.innerHTML = `<div class="chat-message user">${message}</div>`;
-        history.appendChild(userMsg);
-
-        input.value = "";
-
-        const botMsg = document.createElement("div");
-        botMsg.className = "chat-box";
-        botMsg.innerHTML = `<div class="chat-message bot">⏳ 답변을 불러오는 중입니다...</div>`;
-        history.appendChild(botMsg);
-
-        // 예시: 실제 서버 호출로 교체 가능
-        setTimeout(() => {
-          botMsg.innerHTML = `<div class="chat-message bot">✅ "${message}"에 대한 답변입니다.</div>`;
-        }, 1000);
-      }
-    });
   </script>
 </body>
 </html>

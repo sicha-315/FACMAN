@@ -26,7 +26,7 @@
       <div class="header-right">
         <div class="user-icon">👤 <span class="user-name">홍길동(대리)</span></div>
         <div class="clock" id="clock">--:--:--</div>
-        <div>🔔 알림 3건</div>
+        <div>🔔 알림</div>
       </div>
     </header>
 
@@ -47,7 +47,7 @@
             <div class="equipment-line-chart" style="margin-top: 20px;">
               <h3 class="chart-title">설비별 생산 추이</h3>
               <iframe
-                src="http://192.168.0.61:3000/d-solo/aehvqcfaq6qyoe/new-dashboard2?orgId=1&from=1744142615503&to=1744164215503&timezone=browser&showCategory=Panel%20options&panelId=1&__feature.dashboardSceneSolo"
+                src="http://192.168.0.61:3000/d-solo/aehvqcfaq6qyoe/new-dashboard2?orgId=1&from=1744155011444&to=1744176611444&timezone=browser&panelId=1&__feature.dashboardSceneSolo"
                 frameborder="0"
                 width="100%"
                 height="260"
@@ -135,16 +135,12 @@
       <aside class="right-sidebar">
         <div class="section chatbot">
           <h2>💬 챗봇</h2>
-      
-          <!-- 채팅 히스토리 -->
           <div id="chatHistory" class="chat-history"></div>
-      
-          <!-- 입력 및 버튼 영역 -->
           <div class="chat-input-box">
             <textarea id="chatInput" placeholder="예: P1-A 가동률 알려줘"></textarea>
-            <div style="display: flex; justify-content: space-between; gap: 6px;">
+            <div class="chat-buttons">
               <button id="chatSendBtn">질문하기</button>
-              <button id="chatClearBtn" title="대화 초기화" class="clear-btn">🗑️</button>
+              <button id="chatClearBtn" class="clear-btn" title="대화 초기화">🗑️</button>
             </div>
           </div>
         </div>

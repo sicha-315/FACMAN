@@ -6,26 +6,26 @@ async function sendLangGraphMessage() {
 
   const history = document.getElementById("chatHistory");
 
-  // ✅ 새로운 대화 박스 생성
-  const chatBox = document.createElement("div");
-  chatBox.className = "chat-box";
-
-  // ✅ 사용자 질문 추가
+  // ✅ 사용자 질문 박스 생성
+  const userBox = document.createElement("div");
+  userBox.className = "chat-box";
   const userMsg = document.createElement("div");
   userMsg.className = "chat-message user";
   userMsg.textContent = message;
-  chatBox.appendChild(userMsg);
+  userBox.appendChild(userMsg);
+  history.appendChild(userBox);
 
-  // ✅ 응답 자리 (로딩 중 텍스트 포함)
+  // ✅ 챗봇 응답 박스 생성 (로딩 중)
+  const botBox = document.createElement("div");
+  botBox.className = "chat-box";
   const botMsg = document.createElement("div");
   botMsg.className = "chat-message bot";
   botMsg.textContent = "⏳ 답변 생성 중입니다...";
-  chatBox.appendChild(botMsg);
+  botBox.appendChild(botMsg);
+  history.appendChild(botBox);
 
-  // ✅ 히스토리에 chatBox 추가
-  history.appendChild(chatBox);
+  // ✅ 스크롤 아래로
   history.scrollTop = history.scrollHeight;
-
   textarea.value = "";
 
   try {
