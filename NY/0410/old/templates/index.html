@@ -13,9 +13,10 @@
     <h2>📊 대시보드</h2>
     <a href="{{ url_for('index') }}">🏠 메인 페이지</a>
     
-    <a href="server_A2.html">🖥️ 생산성</a>
-    <a href="server_B1.html">🖥️ 양품률</a>
-    <a href="server_B2.html">🖥️ 생산계획</a>
+    <a href="server_B1.html">🖥️ P1-A</a>
+    <a href="server_B1.html">🖥️ P1-B</a>
+    <a href="server_A2.html">🖥️ P2-A</a>
+    <a href="server_B1.html">🖥️ P2-B</a>
     <a href="{{ url_for('report_page') }}">📝 보고서 생성</a>
   </nav>
 
@@ -136,8 +137,7 @@
     </div>
   </div>
 
-  <!-- 유용성 페이지용 JS 파일 -->
-  <script src="{{ url_for('static', filename='usefulness.js') }}"></script>
+
 
   <script>
     function updateClock() {
