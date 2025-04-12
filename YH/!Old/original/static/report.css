@@ -1,0 +1,300 @@
+/* ===== report.html 전용 스타일 ===== */
+
+/* 📌 전체 wrapper */
+.wrapper {
+  display: flex;
+}
+
+/* 📌 Sidebar */
+.sidebar {
+  width: 220px;
+  background-color: #2c3e50;
+  color: white;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  padding: 20px 10px;
+  box-sizing: border-box;
+  z-index: 1000;
+}
+
+.logo-box {
+  width: 100%;
+  max-width: 180px;
+  margin: 0 auto 20px auto;
+}
+
+.logo-img {
+  width: 100%;
+  max-height: 100px;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.sidebar h2 {
+  margin-top: 27px;
+  font-size: 22px;
+}
+
+.sidebar a {
+  display: block;
+  margin: 20px 0;
+  color: white;
+  text-decoration: none;
+  font-size: 18px;
+}
+
+/* 📌 메인 wrapper (header + main + right-sidebar 포함) */
+.main-wrapper {
+  margin-left: 220px; /* 사이드바 너비 */
+  width: calc(100% - 220px);
+  display: flex;
+}
+
+/* 📌 Header (상단 고정) */
+header {
+  background-color: #2c3e50;
+  color: white;
+  padding: 12px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  position: fixed;
+  top: 0;
+  left: 220px;
+  right: 0;
+  height: 50px;
+  z-index: 999;
+  box-sizing: border-box;
+}
+
+header div strong {
+  font-size: 20px;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  white-space: nowrap;
+}
+
+.header-right .user-icon {
+  font-size: 14px;
+}
+
+.header-right .clock {
+  font-size: 14px;
+}
+
+/* 📌 메인 콘텐츠 */
+.main {
+  flex: 1;
+  padding: 80px 30px 30px 30px; /* 헤더 높이 보정 */
+  box-sizing: border-box;
+  min-width: 600px;
+  max-width: calc(100% - 400px); /* 오른쪽 패널 고려 */
+}
+
+/* 📌 Section 박스 */
+.section {
+  background-color: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* 📌 검색 바 */
+.search-bar {
+  margin-bottom: 15px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.search-bar label {
+  font-weight: 500;
+  margin-right: 10px;
+}
+
+.search-bar input[type="checkbox"],
+.search-bar select,
+.search-bar input[type="datetime-local"] {
+  margin-right: 10px;
+  padding: 5px 8px;
+  font-size: 14px;
+}
+
+.search-bar button {
+  padding: 8px 14px;
+  font-size: 14px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.search-bar button:hover {
+  background-color: #43a047;
+}
+
+/* 📌 체크박스 묶음 */
+#processCheckboxes {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-right: 15px;
+}
+
+/* 📌 보고서 요약 출력 */
+#reportBox {
+  background: #f9f9f9;
+  padding: 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #333;
+  white-space: pre-line;
+}
+
+/* 📌 탭 컨테이너 */
+.tab-container {
+  margin-top: 20px;
+  border-bottom: 1px solid #ccc;
+}
+
+/* 📌 차트 영역 */
+#chartsArea {
+  margin-top: 20px;
+}
+
+#chartsArea canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 📌 차트 묶음 */
+.downtime-chart-group,
+.report-row-container {
+  display: flex;
+  justify-content: flex-start;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+/* 📌 오른쪽 사이드바 */
+.right-sidebar {
+  width: 380px;
+  padding: 20px;
+  background-color: #fdfdfd;
+  border-left: 1px solid #ddd;
+  position: fixed;
+  top: 50px;
+  right: 0;
+  height: calc(100% - 50px);
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 📌 챗봇 영역 */
+.chatbot {
+  background-color: #fafafa;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.chatbot textarea {
+  width: 100%;
+  height: 100px;
+  resize: none;
+  padding: 10px;
+  font-size: 14px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.chatbot button {
+  margin-top: 8px;
+  padding: 6px 12px;
+  font-size: 14px;
+  background-color: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.chatbot button:hover {
+  background-color: #1976d2;
+}
+
+.chat-response {
+  margin-top: 10px;
+  font-size: 13px;
+  color: #333;
+}
+
+/* 📌 에이전트 판단 로그 */
+.log-area {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 10px;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.log-entry {
+  padding: 5px;
+  border-bottom: 1px solid #eee;
+  font-size: 13px;
+}
+
+/* 📌 버튼 통일 스타일 */
+button {
+  transition: background-color 0.2s ease;
+}
+
+/* ✅ 반응형 (작은 화면) */
+@media (max-width: 1200px) {
+  .main-wrapper {
+    flex-direction: column;
+  }
+
+  .main {
+    max-width: 100%;
+  }
+
+  .right-sidebar {
+    width: 100%;
+    min-width: 100%;
+    border-left: none;
+    border-top: 1px solid #ddd;
+    position: relative;
+    top: 0;
+    height: auto;
+  }
+
+  header {
+    left: 0;
+    width: 100%;
+  }
+
+  .main {
+    margin-top: 60px;
+  }
+}
