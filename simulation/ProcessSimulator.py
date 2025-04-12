@@ -138,7 +138,7 @@ class ProcessSimulator:
         self._is_maintenance = False
 
     def _update_failure_rate(self):
-        self._failure_prob = 1 - np.exp(-self._runtime / 120)
+        self._failure_prob = 1 - np.exp(-self._runtime / 600)
 
     def _check_maintenance(self):
         pubsub = self._redis_client.pubsub()
@@ -173,13 +173,30 @@ class ProcessSimulator:
         item_id = 0
         while True:
             try:
-                item = self._item_id_generator.generate() + self._process_next[-1]
-                self._redis_client.rpush(self._process_next, item)
-                self._logging_process(item, self._process_name, "", "input")
+                item = self._item_id_generator.generate() + self._process_name[-1]
+                self._redis_client.rpush(self._process_name, item)
+                self._logging_process(item, "P0", "", "input")
                 print(f"Produced: {item}")
                 item_id += 1
                 time.sleep(self._step_time)
+                
+                if self._is_maintenance:
+                    self._maintenance()
+                    continue
+                
+                item = self._receive_item(self._process_name)
+                self._logging_process(item, self._process_name[:-2], self._process_name, "arrival")
+                
+                if not self._process_step(item):
+                    continue
+                
+                self._redis_client.rpush(self._process_next, item)
                 self._logging_process(item, self._process_next[:-2], self._process_next, "arrival")
+                
+                if self._is_maintenance:
+                    self._maintenance()
+                    continue
+                
             except Exception as e:
                 print(e)
 
